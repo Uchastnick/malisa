@@ -1,0 +1,31 @@
+# -------------------------------------------------------------------------------------------------------
+# Набор пользовательских реакций.
+# Описание формата и примеры смотрите в файле `reactions_map.yaml`
+# ---------------------------------------------------------------------------------------------------------
+
+# Тестовый пример
+---
+key_phrase_exact:
+- 'Пример'
+key_phrase_partial:
+result_type: 'user_action'
+result_action: 'Hello'
+action_need_parameter_text: 1
+
+# Тестовый пример №2 (вызов встроенного/системного действия)
+---
+key_phrase_exact:
+- 'Робот'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'IAmReady'
+
+# Информация об уровене загрязнения воздуха в городе Барнаул
+---
+key_phrase_exact:
+- 'загрязнение воздуха'
+- 'уровень загрязнения воздуха'
+key_phrase_partial:
+result_type: 'user_action'
+result_action: 'AirPollutionBarnaul'
+action_need_parameter_text: 0

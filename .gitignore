@@ -1,0 +1,25 @@
+﻿config.py
+settings.ini
+config/config.py
+config/settings.ini
+__todo__.txt
+
+**/__pycache__/
+*.pyc
+
+*.rdp
+*.ovpn
+
+rdp/*
+
+memo/*
+
+books/*
+!books/Философия Процесса - Уайтхед.pdf
+
+stand_up/*
+!stand_up/whattodo.txt
+
+tmp/*
+
+!.gitkeep

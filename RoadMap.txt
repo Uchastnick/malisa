@@ -1,0 +1,3 @@
+﻿- Internationalization
+- Migration to Linux-like systems
+- SmartHome functionality

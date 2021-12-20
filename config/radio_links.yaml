@@ -1,0 +1,113 @@
+radio_links:
+  '*':
+  - http://101.ru/api/channel/getServers/191/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/119/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/164/channel/MP3/128/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/65/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/291/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/424/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/400/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/331/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/386/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/185/channel/AAC/64/dataFormat/mobile
+
+  'ACOUSTIC':
+  - http://101.ru/api/channel/getServers/164/channel/MP3/128/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/41/channel/AAC/64/dataFormat/mobile
+
+  'ARMY':
+  - http://101.ru/api/channel/getServers/37/channel/AAC/64/dataFormat/mobile
+
+  'AUTHOR':
+  - http://101.ru/api/channel/getServers/35/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/41/channel/AAC/64/dataFormat/mobile
+
+  'CHILD':
+  - http://101.ru/api/channel/getServers/93/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/410/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/409/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/412/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/326/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/332/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/329/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/330/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/403/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/400/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/331/channel/AAC/64/dataFormat/mobile
+
+  'CHRISTMAS':
+  - http://101.ru/api/channel/getServers/384/channel/AAC/64/dataFormat/mobile
+
+  'DANCE':
+  - http://5.39.71.159:8643/stream
+  - http://192.99.34.205:8046/stream
+  - http://192.99.34.205:8459/stream
+  - http://192.99.34.205:8448/stream
+  - http://101.ru/api/channel/getServers/400/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/331/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/17/channel/MP3/128/dataFormat/mobile
+
+  'DISCO':
+  - http://5.39.71.159:8998/stream
+  - http://192.99.34.205:8202/stream
+  - http://192.99.34.205:8030/stream
+  - http://101.ru/api/channel/getServers/291/channel/AAC/64/dataFormat/mobile
+
+  'DNB':
+  - http://101.ru/api/channel/getServers/6/channel/AAC/64/dataFormat/mobile
+  
+  'DREAM':
+  - http://101.ru/api/channel/getServers/352/channel/AAC/64/dataFormat/mobile
+  
+  'HI':
+  - http://101.ru/api/channel/getServers/374/channel/AAC/64/dataFormat/mobile
+  
+  'HOUSE':
+  - http://5.39.71.159:8986/stream
+  
+  'HUMOR':
+  - http://101.ru/api/channel/getServers/302/channel/AAC/64/dataFormat/mobile
+  
+  'JAZZ':
+  - http://5.39.71.159:8950/stream
+  
+  'MURZILKI':
+  - http://101.ru/api/channel/getServers/302/channel/AAC/64/dataFormat/mobile
+  
+  'PIANO':
+  - http://101.ru/api/channel/getServers/375/channel/AAC/64/dataFormat/mobile
+  
+  'POP':
+  - http://192.99.34.205:8147/stream
+  
+  'ROAD':
+  - http://101.ru/api/channel/getServers/185/channel/AAC/64/dataFormat/mobile
+  
+  'ROCK':
+  - http://101.ru/api/channel/getServers/384/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/185/channel/AAC/64/dataFormat/mobile
+  - http://5.39.71.159:8871/stream
+  - http://5.39.71.159:8165/stream
+  - http://192.99.34.205:8127/stream
+  - http://192.99.34.205:8456/stream
+  - http://192.99.34.205:8175/stream
+  - http://192.99.34.205:8457/stream
+  
+  'SHANSON':
+  - http://101.ru/api/channel/getServers/50/channel/AAC/64/dataFormat/mobile
+  
+  'SLEEP':
+  - http://gemini.shoutca.st:8149/stream
+  - http://101.ru/api/channel/getServers/95/channel/AAC/64/dataFormat/mobile
+  - http://101.ru/api/channel/getServers/362/channel/AAC/64/dataFormat/mobile
+  
+  'SYNTH':
+  - http://101.ru/api/channel/getServers/350/channel/AAC/64/dataFormat/mobile
+  
+  'TRANCE':
+  - http://5.39.71.159:8049/stream
+  - http://5.39.71.159:8364/stream
+  - http://5.39.71.159:8227/stream
+  - http://101.ru/api/channel/getServers/151/channel/AAC/64/dataFormat/mobile
+
+  

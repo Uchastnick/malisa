@@ -30,10 +30,10 @@ def load_reactions_map(type, is_action_valid_proc):
   home_dir = os.path.dirname(os.path.abspath(__file__))
   
   if type == 'user':
-    file_yaml = os.path.join(home_dir, 'config', 'user_reactions_map.yaml')
+    file_yaml = os.path.join(home_dir, 'config', 'user_logic.yaml')
   else:
     type = 'system'
-    file_yaml = os.path.join(home_dir, 'config', 'reactions_map.yaml')
+    file_yaml = os.path.join(home_dir, 'config', 'logic.yaml')
   
   try:
     with open(file_yaml, encoding='utf-8') as f:

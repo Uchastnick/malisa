@@ -2,18 +2,19 @@ chardet==3.0.4
 colorama==0.4.1
 feedparser==6.0.8
 PyMuPDF==1.19.2
-fitz==0.0.1.dev2
+## fitz==0.0.1.dev2
 googletrans==4.0.0rc1
 gTTS==2.2.1
 inputimeout==1.0.4
-psutil==5.7.2
+lxml==4.2.5
 pyaimp==0.2.3
 PyAutoGUI==0.9.53
-pydub=0.25.1
+pydub==0.25.1
 pyperclip==1.7.0
 pyttsx3==2.90
 PyYAML==6.0
 requests==2.24.0
-rocketchat_API==1.22.0
+rocketchat_API==1.25.0
 SpeechRecognition==3.8.1
-## PyAudio==0.2.11
+## psutil==5.7.2
+## PyAudio==0.2.12

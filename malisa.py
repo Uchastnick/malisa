@@ -106,7 +106,7 @@ from argparse import ArgumentParser
 import reaction
 
 # Карта реакций системы на фразы пользователей.
-# Расположена в отдельных файлах `config/*_reactions_map.yaml`, для удобства конфигурирования.
+# Расположена в отдельных файлах `config/*logic.yaml`, для удобства конфигурирования.
 reactions_map = None
 
 # -----------------------------------------------------------------------------
@@ -373,7 +373,7 @@ def play_clock_alarm():
   if os.path.isfile(file_alarm):
     run_os_command(
       [conf.EXTERNAL_PLAYER_APP,
-       '--quiet', '--really-quiet', '--no-video', '--volume', '75',
+       '--quiet', '--really-quiet', '--no-video', '--volume=75',
        file_alarm],
       sync=True, hide=True)
   
@@ -741,8 +741,7 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True):
   if tts_result:
     result = run_os_command(
       [conf.EXTERNAL_PLAYER_APP,
-       '--quiet', '--really-quiet', '--no-video',
-       '--volume', '50',
+       '--quiet', '--really-quiet', '--no-video', '--volume=50',
        file_mp3],
       sync=True,
       hide=hide_external)
@@ -1409,16 +1408,37 @@ def act_read_habr_news_all(**kwargs):
   
 def act_memorize_text(**kwargs):
   """
-  Сохранить надиктованный текст
+  Сохранить надиктованный текст.
+
+  Возможно сохранять многострочный текст, диктуя каждую строку отдельно.
+  Для завершения записи произносится ключевая фраза "Запись завершена".
+
+  Сформированный текст копируется в буфер обмена, а также сохраняется на диске в виде txt-файла в каталоге "./memo/",
+  с актуальной меткой даты-времени в наименовании.
   """
-  print('[Записать текст]')
-  
+  print('[Записать текст]')  
   say('Говорите')
-  #todo: обработка длинного текста
-  #text = listen_and_recognize(ambient_duration=7)
-  text = listen_and_recognize(listen_timeout=10, clear_screen=False, ambient_duration=10)
+
+  text = ''
+
+  while True:
+    #text_new = listen_and_recognize(ambient_duration=7)
+    #text_new = listen_and_recognize(listen_timeout=10, clear_screen=False, ambient_duration=10)
+    #text_new = listen_and_recognize(listen_timeout=3, clear_screen=False, ambient_duration=3)
+    text_new = listen_and_recognize(clear_screen=False)
+
+    if not text_new or len(text_new) == 0:
+      continue
+
+    if 'запись завершена' in text_new.lower():
+      break
+    else:
+      print(f'{text_new}')
+      text += f'{text_new}\n'
+      time.sleep(0.4)
+      winsound.Beep(frequency=400, duration=400)
   
-  if text:
+  if text and len(text.replace('\n','').replace(' ', '')) > 0:
     copyclip(text)
     
     now = datetime.now()
@@ -1756,7 +1776,7 @@ def act_open_workplace(**kwargs):
     #todo: возможно, сделать несколько необходимых запросов к Базе данных via SSH
 
   # Отправка приветствия в рабочий чат
-  is_send_hello = kwargs.get('send_hello', conf.ROCKET_CHAT_DEFAULT_SEND_HELLO)
+  is_send_hello = kwargs.get('send_hello', conf.ROCKET_CHAT_IS_SEND_HELLO)
   
   if is_send_hello:  
     act_rocket_chat_send_hello()
@@ -2110,7 +2130,7 @@ def act_translate_text(**kwargs):
   Перевод текста на указанный язык (используется Google-переводчик)
   
   Общий формат команды (параметра `text`):
-  "(`перевод` | `переведи`) GOALTEXT [`на` TOLANG] [`с` FROMLANG]"
+  "(`перевод` | `переведи`) GOALTEXT [`на` TOLANG] [(`с` |'с языка') FROMLANG]"
   
   Если язык требуемого для перевода текста отличается от русского,
   его можно будет произнести отдельно, по запросу системы.

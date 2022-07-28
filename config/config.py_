@@ -81,7 +81,7 @@ WHATTODO_NAME = 'whattodo'
 
 # Параметры
 # Отправлять `Привет` в рабочий чат при инициализации рабочего места (True | False)
-ROCKET_CHAT_DEFAULT_SEND_HELLO = True
+ROCKET_CHAT_IS_SEND_HELLO = True
 
 # -----------------------------------------------------------------------------
 
@@ -94,8 +94,8 @@ TIME_TO_SLEEP_MINUTE = 40
 # -----------------------------------------------------------------------------
 
 # Плейлист по умолчанию для радио
-# '101ru-PRO.aimppl4', 'RMG_3.0.m3u', 'miledmusic_st111.m3u8', 'DIRadio-IP.m3u8'
-PLAYLIST_DEFAULT = '101ru-PRO.aimppl4'
+# '101ru-PRO.aimppl4', 'Positivity_Radio.m3u', 'RMG_3.0.m3u', 'miledmusic_st111.m3u8', 'DIRadio-IP.m3u8'
+PLAYLIST_DEFAULT = 'Positivity_Radio.m3u'
 
 # -----------------------------------------------------------------------------
 
@@ -135,9 +135,9 @@ EXTERNAL_PLAYER_APP = 'mpv'
 # Настройки веб-браузера и веб-поиска
 
 # В случае использования браузера по умолчанию - указываем пустую строку
-#WEB_BROWSER_APP = ''
+WEB_BROWSER_APP = ''
 #WEB_BROWSER_APP = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-WEB_BROWSER_APP = 'C:\\Program Files (x86)\\Maxthon5\\Bin\\Maxthon.exe'
+#WEB_BROWSER_APP = 'C:\\Program Files (x86)\\Maxthon5\\Bin\\Maxthon.exe'
 
 # Поисковые движки
 YANDEX_SEARCH_ENGINE = 'https://yandex.ru/search/?text='

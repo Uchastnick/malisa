@@ -23,3 +23,5 @@ stand_up/*
 tmp/*
 
 !.gitkeep
+
+.vscode

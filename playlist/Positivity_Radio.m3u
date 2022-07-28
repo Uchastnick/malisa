@@ -1,0 +1,45 @@
+#EXTM3U
+
+#EXTINF:-1,Positivity 1920s
+https://streaming.positivity.radio/pr/1920/icecast.audio
+#EXTINF:-1,Positivity 1930s
+https://streaming.positivity.radio/pr/1930/icecast.audio
+#EXTINF:-1,Positivity 1940s
+https://streaming.positivity.radio/pr/1940/icecast.audio
+#EXTINF:-1,Positivity 1950s
+https://streaming.positivity.radio/pr/1950/icecast.audio
+#EXTINF:-1,Positivity 1960s
+https://streaming.positivity.radio/pr/posi60s/icecast.audio
+#EXTINF:-1,Positivity 1970s
+https://streaming.positivity.radio/pr/posi70s/icecast.audio
+#EXTINF:-1,Positivity 1980s
+https://streaming.positivity.radio/pr/posi80s/icecast.audio
+#EXTINF:-1,Positivity 1990s
+https://streaming.positivity.radio/pr/posi90s/icecast.audio
+#EXTINF:-1,Positivity 2000s
+https://streaming.positivity.radio/pr/posi00s/icecast.audio
+#EXTINF:-1,Positivity 2010s
+https://streaming.positivity.radio/pr/posi10s/icecast.audio
+#EXTINF:-1,Positivity Gold
+https://streaming.positivity.radio/pr/posigold/icecast.audio
+#EXTINF:-1,Positivity Jazz
+https://streaming.positivity.radio/pr/jazz/icecast.audio
+#EXTINF:-1,Positivity Love
+https://streaming.positivity.radio/pr/posilove/icecast.audio
+#EXTINF:-1,Positivity Good Morning
+https://streaming.positivity.radio/pr/goodmorning/icecast.audio
+#EXTINF:-1,Positivity Good Afternoon
+https://streaming.positivity.radio/pr/goodafternoon/icecast.audio
+#EXTINF:-1,Positivity Easy
+https://streaming.positivity.radio/pr/posieasy/icecast.audio
+#EXTINF:-1,Positivity Country
+https://streaming.positivity.radio/pr/country/icecast.audio
+#EXTINF:-1,Positivity Vibrant
+https://streaming.positivity.radio/pr/vibrant/icecast.audio
+#EXTINF:-1,Positivity Meditation
+https://streaming.positivity.radio/pr/posimeditation/icecast.audio
+#EXTINF:-1,Positivity Classical
+https://streaming.positivity.radio/pr/posiclassical/icecast.audio
+#EXTINF:-1,Positivity Ocean
+https://streaming.positivity.radio/pr/posiocean/icecast.audio
+

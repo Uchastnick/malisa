@@ -58,7 +58,7 @@ radio_links:
   
   'DREAM':
   - http://101.ru/api/channel/getServers/352/channel/AAC/64/dataFormat/mobile
-  
+
   'HI':
   - http://101.ru/api/channel/getServers/374/channel/AAC/64/dataFormat/mobile
   
@@ -110,4 +110,5 @@ radio_links:
   - http://5.39.71.159:8227/stream
   - http://101.ru/api/channel/getServers/151/channel/AAC/64/dataFormat/mobile
 
-  
+  'FAVOURITES':
+  - http://

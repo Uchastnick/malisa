@@ -9,15 +9,20 @@ __all__ = [
   'detect_file_encoding',
   'check_any_exact_match',
   'check_any_partial_match',
-  'extract_value_from_text'
+  'extract_value_from_text',
+  'load_config',
+  'play_sound',
+  'beep_sound'
 ]
 
+import os
 import time
 import subprocess
-import winsound
 
 import chardet
 from chardet.universaldetector import UniversalDetector
+
+from config_to_object import load_config as load_config_to_object
 
 # -----------------------------------------------------------------------------
 
@@ -35,14 +40,6 @@ def beep(count=1):
   print('\a' * count)
   
   
-def beep_sound(count=1, freq=3000, duration=500):
-  """
-  Звуковой сигнал
-  """
-  for i in range(count):
-    winsound.Beep(frequency=freq, duration=duration)
-
-
 def run_os_command(cmd=[], sync=False, hide=False):
   """
   Запустить команду операционной системы, с параметрами.
@@ -50,15 +47,18 @@ def run_os_command(cmd=[], sync=False, hide=False):
   По умолчанию запуск происходит асинхронно (можно указать запуск c ожиданием выполнения).
   Также возможно `спрятать` окно вызываемого приложения.
   """
-  result = False
+  result = False    
   
-  if cmd: 
-    si = subprocess.STARTUPINFO()
+  if cmd:
+    si = None
+    if os.name == 'nt':
+      si = subprocess.STARTUPINFO()    
     shell = False
 
     if hide:
-      si.dwFlags |= (subprocess.STARTF_USESHOWWINDOW | subprocess.SW_HIDE)
-      si.wShowWindow = subprocess.SW_HIDE
+      if os.name == 'nt':
+        si.dwFlags |= (subprocess.STARTF_USESHOWWINDOW | subprocess.SW_HIDE)
+        si.wShowWindow = subprocess.SW_HIDE
       shell=True ##
 
     try:      
@@ -139,3 +139,58 @@ def extract_value_from_text(text, keyword, default_value=''):
   
   return (new_text, value)
 
+
+def load_config(config_file='config.ini'):
+  """
+  Загрузить параметры из файла конфигурации.
+  На выходе получаем объект с именами полей в нижнем регистре.
+  """
+  config = None
+  home_dir = os.path.dirname(os.path.abspath(__file__))
+  config_file_path = os.path.join(home_dir, 'config', config_file)
+  
+  try:
+    config = load_config_to_object(config_file_path)
+    #config = load_config_to_object(config_file_path, encoding='utf-8')
+  
+  except Exception as e:
+    print(e)
+    #print("Ошибка при загрузке файла конфигурации!")
+    raise SystemExit("Ошибка при загрузке файла конфигурации!")
+
+  return config
+
+
+# -----------------------------------------------------------------------------
+try:
+  import winsound
+
+except ImportError:  
+  def play_sound(frequency, duration):
+    """
+    Проигрывание звукового сигнала.
+    Для систем Linux используем системную команду, предварительно установив: apt-get install beep
+    """
+    # os.system(f'beep -f {frequency} -l {duration}')
+    result = run_os_command(['beep', '-f', f'{frequency}', '-l', f'{duration}'], sync=True, hide=True)
+    
+else:
+  def play_sound(frequency,duration):
+    """ 
+    Проигрывание звукового сигнала.
+    Для систем Windows используем соответствующую библиотеку.
+    """
+    winsound.Beep(frequency, duration)
+# -----------------------------------------------------------------------------
+
+
+def beep_sound(count=1, freq=3000, duration=500):
+  """
+  Звуковой сигнал
+  """
+  for i in range(count):
+    play_sound(frequency=freq, duration=duration)
+
+
+if __name__ == '__main__':
+  pass

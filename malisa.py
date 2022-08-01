@@ -1,4 +1,5 @@
 import os, sys
+import importlib
 
 # -----------------------------------------------------------------------------
 # Директория основного скрипта робота
@@ -10,20 +11,23 @@ if home_dir not in sys.path: sys.path.append(home_dir)
 
 # -----------------------------------------------------------------------------
 # Базовая Конфигурация по умолчанию
+config_name = 'config.ini'
 
-if not os.path.isfile(os.path.join(home_dir, 'config', 'config.py')):
-  print(f'\nНе найден основной файл конфиграции "./config/config.py"!\n\a')
-  sys.exit(0)
+if not os.path.isfile(os.path.join(home_dir, 'config', config_name)):
+  raise SystemExit(f'\nНе найден основной файл конфиграции "./config/{config_name}"!\n\a')
 
 try:
-  import config.config as conf
+  #import config.config as conf
+  #conf = importlib.import_module(f'config.config')
+
+  from utils import load_config
+  config = load_config(config_name)
+
 except Exception as e:
-  print('Обнаружена проблема в файле конфигурации "./config/config.py"!\n\a')
   print(e)
+  raise SystemExit(f'Обнаружена проблема в файле конфигурации "./config/{config_name}"!\n\a')
 
 # -----------------------------------------------------------------------------
-
-import importlib
 
 import subprocess
 import threading
@@ -72,17 +76,16 @@ pyautogui.PAUSE = 2
 screen_size = pyautogui.size()
 x_center, y_center = round(screen_size[0]/2), round(screen_size[1]/2)
 
-import pyaimp
-
 from utils import (
   sleep, 
   beep, 
-  beep_sound,
   run_os_command,
   detect_file_encoding,
   check_any_exact_match,
   check_any_partial_match,
-  extract_value_from_text
+  extract_value_from_text,
+  play_sound,
+  beep_sound
 )
 
 import yaml
@@ -97,7 +100,6 @@ from googletrans import Translator
 
 import psutil
 
-import winsound
 from pydub import AudioSegment
 
 from argparse import ArgumentParser
@@ -170,8 +172,8 @@ SENTENCE_DELIMITER = '. '
 # -----------------------------------------------------------------------------
 
 # Инициализация web-поиска
-if conf.WEB_BROWSER_APP:
-  web.register('web_browser', None, web.BackgroundBrowser(conf.WEB_BROWSER_APP))
+if config.web.web_browser_app:
+  web.register('web_browser', None, web.BackgroundBrowser(config.web.web_browser_app))
   web_browser = web.get('web_browser')
 else:
   web_browser = web.get(None)
@@ -339,7 +341,7 @@ def run_interval_timer(seconds, signal_after_seconds, name=None):
     
     if interval_seconds == signal_after_seconds:
       interval_seconds = 0
-      winsound.Beep(frequency=800, duration=500)
+      play_sound(frequency=800, duration=500)
       time.sleep(0.5)
     else:    
       time.sleep(1)
@@ -372,7 +374,7 @@ def play_clock_alarm():
   
   if os.path.isfile(file_alarm):
     run_os_command(
-      [conf.EXTERNAL_PLAYER_APP,
+      [config.app.external_player_app,
        '--quiet', '--really-quiet', '--no-video', '--volume=75',
        file_alarm],
       sync=True, hide=True)
@@ -485,11 +487,11 @@ def make_metronome(**kwargs):
   Возможность выхода по голосовой команде, после определённого числа тактов.
   Возможность прерывания по `Ctrl-C` с клавиатуры.
   """  
-  bpm         = kwargs.get('bpm', conf.METRONOME_DEFAULT_BPM)
-  note_count  = kwargs.get('note_count', conf.METRONOME_DEFAULT_NOTE_COUNT)
-  note_length = kwargs.get('note_length', conf.METRONOME_DEFAULT_NOTE_LENGTH)
-  is_accent   = kwargs.get('is_accent', conf.METRONOME_DEFAULT_IS_ACCENT)
-  is_shuffle  = kwargs.get('is_shuffle', conf.METRONOME_DEFAULT_IS_SHUFFLE)
+  bpm         = kwargs.get('bpm', config.metronome.metronome_default_bpm)
+  note_count  = kwargs.get('note_count', config.metronome.metronome_default_note_count)
+  note_length = kwargs.get('note_length', config.metronome.metronome_default_note_length)
+  is_accent   = kwargs.get('is_accent', config.metronome.metronome_default_is_accent)
+  is_shuffle  = kwargs.get('is_shuffle', config.metronome.metronome_default_is_shuffle)
   
   if bpm < 30 or bpm > 250:
     return False
@@ -506,11 +508,11 @@ def make_metronome(**kwargs):
   bpm   = 240.0 / note_length / bpm
   delay = bpm - tick_length
   
-  freq_base    = conf.METRONOME_FREQ_BASE
-  freq_accent  = conf.METRONOME_FREQ_ACCENT
-  freq_shuffle = conf.METRONOME_FREQ_SHUFFLE
+  freq_base    = config.metronome.metronome_freq_base
+  freq_accent  = config.metronome.metronome_freq_accent
+  freq_shuffle = config.metronome.metronome_freq_shuffle
   
-  silence_in_shuffle = conf.METRONOME_USE_SILENCE_IN_SHUFFLE
+  silence_in_shuffle = config.metronome.metronome_use_silence_in_shuffle
   
   # Возможен выход по `Ctrl-C` с клавиатуры
   try:
@@ -519,28 +521,28 @@ def make_metronome(**kwargs):
     while True:      
       for i in range(1, note_count + 1):
         if is_accent and i == 1:
-          winsound.Beep(frequency=freq_accent, duration=play_time)
+          play_sound(frequency=freq_accent, duration=play_time)
         
         elif is_shuffle and i in [2, 5, 8, 11]:
           if silence_in_shuffle:
             time.sleep(tick_length)
           else:
-            winsound.Beep(frequency=freq_shuffle, duration=play_time)
+            play_sound(frequency=freq_shuffle, duration=play_time)
         
         else:
-          winsound.Beep(frequency=freq_base, duration=play_time)
+          play_sound(frequency=freq_base, duration=play_time)
           
         time.sleep(delay)
       
       # Возможен выход по голосовой команде после заданного числа тактов
       beats += 1      
-      if (beats % conf.METRONOME_BEATS_COUNT_BEFORE_EXIT) == 0:
-        winsound.Beep(frequency=1000, duration=300)
+      if (beats % config.metronome.metronome_beats_count_before_exit) == 0:
+        play_sound(frequency=1000, duration=300)
         if check_stop(listen_timeout=2, clear_screen=False): break
-        winsound.Beep(frequency=1000, duration=300)
+        play_sound(frequency=1000, duration=300)
 
   except KeyboardInterrupt:
-    winsound.Beep(frequency=1000, duration=300)
+    play_sound(frequency=1000, duration=300)
     return True
         
   return True
@@ -631,10 +633,10 @@ def init_tts():
   tts = pyttsx3.init()
 
   rate = tts.getProperty('rate')
-  tts.setProperty('rate', conf.SPEECH_RATE_RU)
+  tts.setProperty('rate', config.engine.speech_rate_ru)
 
   volume = tts.getProperty('volume')
-  tts.setProperty('volume', conf.SPEECH_VOLUME)
+  tts.setProperty('volume', config.engine.speech_volume)
   
   voices = tts.getProperty('voices')
   
@@ -643,41 +645,41 @@ def init_tts():
     
     # Английский
     if not en_voice_id:
-      if conf.SPEECH_ENGINE_EN_NAME:
-        if voice.name == conf.SPEECH_ENGINE_EN_NAME: en_voice_id = voice.id
+      if config.engine.speech_engine_en_name:
+        if voice.name == config.engine.speech_engine_en_name: en_voice_id = voice.id
       else:
         if 'Microsoft Anna' in voice.name: en_voice_id = voice.id
     
     # Русский
     if not ru_voice_id:
-      if conf.SPEECH_ENGINE_RU_NAME:
-        if voice.name == conf.SPEECH_ENGINE_RU_NAME: ru_voice_id = voice.id
+      if config.engine.speech_engine_ru_name:
+        if voice.name == config.engine.speech_engine_ru_name: ru_voice_id = voice.id
     
     # Немецкий
     if not de_voice_id:
-      if conf.SPEECH_ENGINE_DE_NAME:
-        if voice.name == conf.SPEECH_ENGINE_DE_NAME: de_voice_id = voice.id
+      if config.engine.speech_engine_de_name:
+        if voice.name == config.engine.speech_engine_de_name: de_voice_id = voice.id
 
   # По возможности, первоначально устанавливается русский язык произношения
   # Если ничего не найдено - язык по умолчанию
   if ru_voice_id:
     tts.setProperty('voice', ru_voice_id)
-    tts.setProperty('rate', conf.SPEECH_RATE_RU)
+    tts.setProperty('rate', config.engine.speech_rate_ru)
     current_tts_lang = 'ru'
   
   elif en_voice_id:
     tts.setProperty('voice', en_voice_id)
-    tts.setProperty('rate', conf.SPEECH_RATE_EN)
+    tts.setProperty('rate', config.engine.speech_rate_en)
     current_tts_lang = 'en'
   
   elif de_voice_id:
     tts.setProperty('voice', de_voice_id)
-    tts.setProperty('rate', conf.SPEECH_RATE_DE)
+    tts.setProperty('rate', config.engine.speech_rate_de)
     current_tts_lang = 'de'
   
   else:
     tts.setProperty('voice', 'default')
-    tts.setProperty('rate', conf.SPEECH_RATE_EN)
+    tts.setProperty('rate', config.engine.speech_rate_en)
     current_tts_lang = 'en'
     
   return tts
@@ -694,13 +696,13 @@ def say(text, lang='ru'):
     if lang != current_tts_lang:
       if lang == 'ru': 
         tts.setProperty('voice', ru_voice_id)
-        tts.setProperty('rate', conf.SPEECH_RATE_RU)
+        tts.setProperty('rate', config.engine.speech_rate_ru)
       elif lang == 'en': 
         tts.setProperty('voice', en_voice_id)
-        tts.setProperty('rate', conf.SPEECH_RATE_EN)
+        tts.setProperty('rate', config.engine.speech_rate_en)
       elif lang == 'de': 
         tts.setProperty('voice', de_voice_id)
-        tts.setProperty('rate', conf.SPEECH_RATE_DE)      
+        tts.setProperty('rate', config.engine.speech_rate_de)
       current_tts_lang = lang
     
     tts.say(text)
@@ -711,7 +713,7 @@ def is_external_player_exists():
   """
   Проверка доступности внешнего приложения для проигрывания файлов
   """
-  result = run_os_command([conf.EXTERNAL_PLAYER_APP, '--help', '--really-quiet'], sync=True, hide=True)
+  result = run_os_command([config.app.external_player_app, '--help', '--really-quiet'], sync=True, hide=True)
   return result
   
 
@@ -740,7 +742,7 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True):
   
   if tts_result:
     result = run_os_command(
-      [conf.EXTERNAL_PLAYER_APP,
+      [config.app.external_player_app,
        '--quiet', '--really-quiet', '--no-video', '--volume=50',
        file_mp3],
       sync=True,
@@ -762,7 +764,7 @@ def show_caption(caption):
     say(f'{caption}:')
     
 
-def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, ambient_duration=conf.AMBIENT_DURATION):
+def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, ambient_duration=config.mic.ambient_duration):
     """
     Прослушивании и распознавание речи
     (основная процедура, один шаг цикла)
@@ -775,7 +777,7 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
     if clear_screen: print(ansi.clear_screen())
     
     #print('Проверка микрофона...')
-    with sr.Microphone(device_index = conf.MICROPHONE_INDEX) as source:
+    with sr.Microphone(device_index = config.mic.microphone_index) as source:
       #print('Настройка...')      
       # Настройка обработки посторонних шумов
       reco.adjust_for_ambient_noise(source, duration = ambient_duration)
@@ -969,7 +971,7 @@ def make_reaction(text):
   
   if not text: return
   
-  robot_name = conf.ROBOT_NAME.lower()
+  robot_name = config.main.robot_name.lower()
   robot_name_length = len(robot_name)
     
   text = text.lower()
@@ -1015,8 +1017,8 @@ def act_i_am_ready(**kwargs):
 
   text = listen_and_recognize()
   if text: 
-    if not text.lower().startswith(conf.ROBOT_NAME.lower()):
-      text = f'{conf.ROBOT_NAME} {text}'
+    if not text.lower().startswith(config.main.robot_name.lower()):
+      text = f'{config.main.robot_name} {text}'
     make_reaction(text)
 
 
@@ -1205,8 +1207,8 @@ def act_weather_now_info(**kwargs):
   """
   show_caption('Информация о погоде')
     
-  url = (f'https://api.openweathermap.org/data/2.5/weather?q={conf.WEATHER_CITY}'
-         f'&lang=ru&units=metric&APPID={conf.WEATHER_API}')
+  url = (f'https://api.openweathermap.org/data/2.5/weather?q={config.weather.weather_city}'
+         f'&lang=ru&units=metric&APPID={config.weather.weather_api}')
   
   now_weather_info = None  
   try:
@@ -1231,8 +1233,8 @@ def act_weather_info(**kwargs):
   """
   show_caption('Прогноз погоды')
 
-  url = (f'https://api.openweathermap.org/data/2.5/onecall?lat={conf.WEATHER_PLACE_LAT}&lon={conf.WEATHER_PLACE_LON}'
-         f'&exclude=minutely,hourly&lang=ru&units=metric&APPID={conf.WEATHER_API}')
+  url = (f'https://api.openweathermap.org/data/2.5/onecall?lat={config.weather.weather_place_lat}&lon={config.weather.weather_place_lon}'
+         f'&exclude=minutely,hourly&lang=ru&units=metric&APPID={config.weather.weather_api}')
   
   result = None
   try:
@@ -1436,7 +1438,7 @@ def act_memorize_text(**kwargs):
       print(f'{text_new}')
       text += f'{text_new}\n'
       time.sleep(0.4)
-      winsound.Beep(frequency=400, duration=400)
+      play_sound(frequency=400, duration=400)
   
   if text and len(text.replace('\n','').replace(' ', '')) > 0:
     copyclip(text)
@@ -1491,12 +1493,12 @@ def act_vpn_connect(**kwargs):
   """
   show_caption('Открываю VPN')
   
-  cmd = [conf.OPENVPN_GUI_APP,
+  cmd = [config.app.openvpn_gui_app,
          '--show_balloon', '0', 
          '--silent_connection', '1',
          '--show_script_window', '0',
-         '--config_dir', conf.OPENVPN_CONFIG_DIR,
-         '--command', 'connect', conf.OPENVPN_CONFIG_FILE]
+         '--config_dir', config.app.openvpn_config_dir,
+         '--command', 'connect', config.app.openvpn_config_file]
   run_os_command(cmd)
   
   sleep(10)
@@ -1509,7 +1511,7 @@ def act_vpn_disconnect(**kwargs):
   """
   show_caption('Закрываю VPN')
   
-  cmd = [conf.OPENVPN_GUI_APP, 
+  cmd = [config.app.openvpn_gui_app, 
          '--command', 'disconnect_all']
   run_os_command(cmd)
   
@@ -1523,7 +1525,7 @@ def act_mstsc_connect(**kwargs):
   """
   show_caption('Открываю RDP')
   
-  cmd = ['mstsc', f"{os.path.join(home_dir, 'rdp', conf.RDP_CONFIG_FILE)}"]
+  cmd = ['mstsc', f"{os.path.join(home_dir, 'rdp', config.app.rdp_config_file)}"]
   run_os_command(cmd)
   
   sleep(5)
@@ -1536,7 +1538,7 @@ def act_rocket_chat_gui_connect(**kwargs):
   """
   show_caption('Открываю Рокет Чат')
   
-  cmd = [conf.ROCKET_CHAT_APP]
+  cmd = [config.app.rocket_chat_app]
   run_os_command(cmd)
   
   sleep(20)
@@ -1557,7 +1559,7 @@ def act_rocket_chat_gui_logon(**kwargs):
     sleep(2)
 
     try:
-      wnds = pyautogui.getWindowsWithTitle(conf.ROCKET_CHAT_TITLE)
+      wnds = pyautogui.getWindowsWithTitle(config.autoit.rocket_chat_title)
       if wnds:
         wnd = wnds[0]
         break
@@ -1579,11 +1581,11 @@ def act_rocket_chat_gui_logon(**kwargs):
     pyautogui.hotkey('ctrl', '1')
     sleep(4)
     
-    pyautogui.click(x=conf.ROCKET_CHAT_X_HACK, y=conf.ROCKET_CHAT_Y_HACK, button='left') # hack
+    pyautogui.click(x=config.autoit.rocket_chat_x_hack, y=config.autoit.rocket_chat_y_hack, button='left') # hack
     
-    pyautogui.write(conf.ROCKET_CHAT_LOGIN, interval=conf.GUI_WRITE_INTERVAL)
+    pyautogui.write(config.rocket.rocket_chat_login, interval=config.autoit.gui_write_interval)
     pyautogui.press('tab')
-    pyautogui.write(conf.ROCKET_CHAT_PWD, interval=conf.GUI_WRITE_INTERVAL)
+    pyautogui.write(config.rocket.rocket_chat_pwd, interval=config.autoit.gui_write_interval)
     pyautogui.press('enter')  
     
     wnd.minimize()
@@ -1612,7 +1614,7 @@ def act_rocket_chat_send_bye(**kwargs):
   Отправить "Пока" в рабочий (Rocket) чат
   """
   show_caption('Отправка "Пока!" в Рокет Чат')
-  result = rocket.rocket_chat_send_message(conf.ROCKET_CHAT_MESSAGE_BYE, to_channel=conf.ROCKET_CHAT_CHANNEL_HELLO)
+  result = rocket.rocket_chat_send_message(config.rocket.rocket_chat_message_bye, to_channel=config.rocket.rocket_chat_channel_hello)
   
   if result:
     say('Отправлено успешно!')
@@ -1665,7 +1667,7 @@ def set_system_volume(value):
   """
   Установка громкости звука ОС
   """
-  run_os_command([conf.SET_VOLUME_APP, f'{value}'], sync=True)
+  run_os_command([config.app.set_volume_app, f'{value}'], sync=True)
   
 
 def check_is_app_running(app_name):
@@ -1690,13 +1692,13 @@ def check_is_vpn_connected():
   result = False
   
   # Проверка процесса
-  app_name = os.path.basename(conf.OPENVPN_GUI_APP)
+  app_name = os.path.basename(config.app.openvpn_gui_app)
   is_app_running = check_is_app_running(app_name)
   
   if is_app_running:
     # Дополнительная проверка лога соединения
     try:
-      with open(conf.OPENVPN_LOG_FILE) as f:
+      with open(config.app.openvpn_log_file) as f:
         log_last_line = f.readlines()[-1]
     except:
       log_last_line = ''
@@ -1716,7 +1718,7 @@ def check_is_rocket_chat_gui_open():
   result = False
 
   # Проверка процесса
-  app_name = os.path.basename(conf.ROCKET_CHAT_APP)
+  app_name = os.path.basename(config.app.rocket_chat_app)
   is_app_running = check_is_app_running(app_name)
   
   if is_app_running:
@@ -1727,7 +1729,7 @@ def check_is_rocket_chat_gui_open():
     # Ожидаем появление окна
     while True:
       sleep(2)      
-      wnds = pyautogui.getWindowsWithTitle(conf.ROCKET_CHAT_TITLE)
+      wnds = pyautogui.getWindowsWithTitle(config.autoit.rocket_chat_title)
       if wnds:
         wnd = wnds[0]
         break            
@@ -1776,7 +1778,7 @@ def act_open_workplace(**kwargs):
     #todo: возможно, сделать несколько необходимых запросов к Базе данных via SSH
 
   # Отправка приветствия в рабочий чат
-  is_send_hello = kwargs.get('send_hello', conf.ROCKET_CHAT_IS_SEND_HELLO)
+  is_send_hello = kwargs.get('send_hello', config.rocket.rocket_chat_is_send_hello)
   
   if is_send_hello:  
     act_rocket_chat_send_hello()
@@ -1784,7 +1786,7 @@ def act_open_workplace(**kwargs):
     print('Rocket Chat Send "Hello!"')
   
   # Корректировка громкости звука
-  set_system_volume(conf.SYSTEM_VOLUME_DEFAULT)
+  set_system_volume(config.engine.system_volume_default)
 
   say('Работайте.')
 
@@ -1793,11 +1795,11 @@ def act_checking_time_to_sleep(**kwargs):
   """
   Проверка необходимости идти спать
   """
-  disable_sleep_time_checking = getattr(conf, 'DISABLE_SLEEP_TIME_CHECKING', 0)
+  disable_sleep_time_checking = getattr(config.sleep, 'disable_sleep_time_checking', 0)
   if disable_sleep_time_checking == 1: return
   
   now = datetime.now()
-  time_to_sleep = now.replace(hour = (conf.TIME_TO_SLEEP_HOUR or 23), minute = (conf.TIME_TO_SLEEP_MINUTE or 40))
+  time_to_sleep = now.replace(hour = (config.sleep.time_to_sleep_hour or 23), minute = (config.sleep.time_to_sleep_minute or 40))
   
   # Учитываем также 'ночное время'
   if now.hour < 6: time_to_sleep -= timedelta(days=1)
@@ -1817,25 +1819,21 @@ def wait_while_music_playing():
   while True:
     sleep(1)  
     
-    try:
-      player = pyaimp.Client()
-    except:
-      player = None
+    player = radio.get_player()
+    if not player:
       beep()
       return
       
-    if player:
-      state = player.get_playback_state()      
-      
-      if state != pyaimp.PlayBackState.Playing:
+    else:
+      if not radio.is_playing():
         beep()
         return      
       
       else:
         # Возможность остановки плеера, голосовой командой с именем робота
         text = listen_and_recognize(listen_timeout=2, clear_screen=False).lower()
-        if conf.ROBOT_NAME.lower() in text:
-          player.pause()
+        if config.main.robot_name.lower() in text:
+          radio.radio_pause()
           #beep()
           say('Окей')
           return
@@ -1850,16 +1848,12 @@ def act_radio_open_and_play(**kwargs):
   
   show_caption('Запуск')
   
-  cmd = [conf.AIMP_PATH, '/PAUSE']
-  run_os_command(cmd)
+  player = radio.run_player_aimp()
   
-  sleep(3)
-  try:
-    player = pyaimp.Client()
-  except:
+  if not player:
     say('Проблема с запуском плеера')
     return
-    
+  
   radio_link = ''
 
   if use_random_link:
@@ -1877,10 +1871,10 @@ def act_radio_open_and_play(**kwargs):
   else:
     # Плэйлист по умолчанию (локальный)
     say('Плейлист - по умолчанию.')
-    play_object = os.path.join(home_dir, 'playlist', conf.PLAYLIST_DEFAULT)
+    play_object = os.path.join(home_dir, 'playlist', config.radio.playlist_default)
 
-  player.add_to_playlist_and_play(play_object)
-  player.set_volume(85)
+  radio.add_to_playlist_and_play(play_object)
+  radio.set_volume(85)
   
   sleep(2)
   wait_while_music_playing() ##
@@ -1898,48 +1892,24 @@ def act_radio_pause(**kwargs):
   """
   Проигрывание музыки - на паузу
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-  
-  if player:
-    state = player.get_playback_state() 
-    if state == pyaimp.PlayBackState.Playing:
-      player.pause()
+  radio.radio_pause()
 
 
 def act_radio_play(**kwargs):
   """
   Запуск проигрывания музыки после паузы
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-  
-  if player:
-    state = player.get_playback_state() 
-    if state != pyaimp.PlayBackState.Playing:
-      player.play()      
-      
-      sleep(2)
-      wait_while_music_playing() ##
+  if not radio.is_playing():
+    radio.radio_play()
+    sleep(2)
+    wait_while_music_playing() ##
 
 
 def act_radio_stop(**kwargs):
   """
   Остановка проигрывания музыки
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-  
-  if player:
-    state = player.get_playback_state() 
-    if state != pyaimp.PlayBackState.Stopped:
-      player.stop()
+  radio.radio_stop()
 
 
 def act_realty_info(**kwargs):
@@ -1948,7 +1918,7 @@ def act_realty_info(**kwargs):
   """
   show_caption('Статистика по недвижимости')
   
-  for place in (conf.REALTY_CITIES + conf.REALTY_REGIONS):
+  for place in (config.realty.realty_cities + config.realty.realty_regions):
     url = (f'https://opendata.domclick.ru/app/api/v2/places/{place}'
            f'?metric_group=offers&period=last_30_days&period_count=1&show_in=banner')
 
@@ -2101,7 +2071,7 @@ def act_web_search(**kwargs):
     search_string = ''
   
   if web_browser and search_string:
-    web_browser.open(f'{conf.WEB_SEARCH_ENGINE_DEFAULT}{search_string}', new=2)
+    web_browser.open(f'{config.web.web_search_engine_default}{search_string}', new=2)
   
   say('Сделано.')
   
@@ -2607,7 +2577,7 @@ def metronome_parameters_recognize_correction(text_parameters):
   
   # Набор данных для исправления ошибок распознавания
   replace_data = {
-    'по умолчанию': f'{conf.METRONOME_DEFAULT_BPM} ударов',
+    'по умолчанию': f'{config.metronome.metronome_default_bpm} ударов',
     'note': ' ноты ',
     'nod': ' нот ',
     '608': '6 нот 8',
@@ -2658,7 +2628,7 @@ def act_make_metronome(**kwargs):
   Параметр `акцент`, означает выделение сильной доли.
   Параметр `шаффл`, означает пропуск сигнала (либо особый сигнал) на среднюю долю в триолях.
   
-  По умолчанию (если не указано) значения будут следующие (настраивается в `config/config.py`):
+  По умолчанию (если не указано) значения будут следующие (настраивается в `config/config.ini`):
     - 90 ударов в минуту
     - размер 4/4
     - с акцентом, с сигналом на каждую долю
@@ -2700,11 +2670,11 @@ def act_make_metronome(**kwargs):
 
       #todo: возможно, поменять алгоритм, разбора, запретив использование параметров по умолчанию
       
-      bpm         = int(result_bpm) if result_bpm else conf.METRONOME_DEFAULT_BPM
-      note_count  = int(result_note_count) if result_note_count else conf.METRONOME_DEFAULT_NOTE_COUNT
-      note_length = int(result_note_length) if result_note_length else conf.METRONOME_DEFAULT_NOTE_LENGTH
-      is_accent   = True if (result_additional and 'акцент' in result_additional) else conf.METRONOME_DEFAULT_IS_ACCENT
-      is_shuffle  = True if (result_additional and 'шаффл' in result_additional) else conf.METRONOME_DEFAULT_IS_SHUFFLE  
+      bpm         = int(result_bpm) if result_bpm else config.metronome.metronome_default_bpm
+      note_count  = int(result_note_count) if result_note_count else config.metronome.metronome_default_note_count
+      note_length = int(result_note_length) if result_note_length else config.metronome.metronome_default_note_length
+      is_accent   = True if (result_additional and 'акцент' in result_additional) else config.metronome.metronome_default_is_accent
+      is_shuffle  = True if (result_additional and 'шаффл' in result_additional) else config.metronome.metronome_default_is_shuffle  
       
       parse_parameters_is_ok = True
       
@@ -2720,14 +2690,14 @@ def act_make_metronome(**kwargs):
     say(info)
     
     # Корректировка громкости
-    set_system_volume(conf.METRONOME_VOLUME)
+    set_system_volume(config.metronome.metronome_volume)
     beep_sound(freq=1000, duration=300)
     
     # Запуск метронома
     result = make_metronome(bpm=bpm, note_count=note_count, note_length=note_length, is_accent=is_accent, is_shuffle=is_shuffle)    
     
     # Корректировка громкости
-    set_system_volume(conf.SYSTEM_VOLUME_DEFAULT)
+    set_system_volume(config.engine.system_volume_default)
     
     if result:
       say("Готово")
@@ -2793,7 +2763,7 @@ def init(config_file=None):
   print(ansi.clear_screen())
   
   # Корректировка громкости звука
-  set_system_volume(conf.SYSTEM_VOLUME_DEFAULT)
+  set_system_volume(config.engine.system_volume_default)
 
 
 def run(config_file=None):
@@ -2806,7 +2776,7 @@ def run(config_file=None):
   init(config_file)
   
   ##beep()
-  say(f'Привет. {conf.ROBOT_NAME} на связи.')
+  say(f'Привет. {config.main.robot_name} на связи.')
   
   #DEBUG    
   #print('OK')

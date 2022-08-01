@@ -6,7 +6,11 @@ import requests
 import feedparser
 from pprint import pprint
 
-from config.config import NEWS_API
+#from config.config import NEWS_API
+from utils import load_config
+config = load_config()
+
+NEWS_API = config.news.news_api
 
 RSS_LINK_AMIC = 'https://www.amic.ru/rss'
 RSS_LINK_ALTAPRESS = 'https://altapress.ru/rss'

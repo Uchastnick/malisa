@@ -45,5 +45,7 @@ music_style_names = {
 
   'шансон': 'SHANSON',
 
+  'избранное': 'FAVOURITES',
+
   'разное': '*',
 }

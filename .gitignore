@@ -1,7 +1,11 @@
 ﻿config.py
+config.ini
 settings.ini
+
 config/config.py
+config/config.ini
 config/settings.ini
+
 __todo__.txt
 
 **/__pycache__/
@@ -25,3 +29,8 @@ tmp/*
 !.gitkeep
 
 .vscode
+.venv
+
+_release
+build
+dist

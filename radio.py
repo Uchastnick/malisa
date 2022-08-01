@@ -18,18 +18,31 @@ from utils import (
   sleep, 
   beep, 
   run_os_command,
-  extract_value_from_text
+  extract_value_from_text,
+  load_config
 )
 
 import random
 import yaml
-import pyaimp
+
+if os.name == 'nt':
+  import pyaimp
+  
+  STATE_PLAYING = pyaimp.PlayBackState.Playing
+  STATE_PAUSED  = pyaimp.PlayBackState.Paused
+  STATE_STOPPED = pyaimp.PlayBackState.Stopped
+
+else:
+  STATE_PLAYING = None
+  STATE_PAUSED  = None
+  STATE_STOPPED = None
 
 # -----------------------------------------------------------------------------
-from config.config import AIMP_PATH
+config = load_config()
+AIMP_PATH = config.app.aimp_path
 
 # Сопоставление наименования стилей
-from config.music_style import music_style_names
+from music_style import music_style_names
 
 # Ссылки на потоковое радио для разных стилей (хранятся в отдельном файле)
 radio_links = []
@@ -113,19 +126,78 @@ def get_radio_link_random():
   return radio_link
   
 
+def get_player():
+  """
+  Получение экземпляра запущенного проигрывателя
+  """
+  player = None
+  
+  try:
+    if os.name == 'nt':
+      player = pyaimp.Client()
+  except:
+    player = None
+    
+  return player
+  
+
+def get_playback_state():
+  """
+  Получение информации о статусе проигрывателя
+  """
+  state = None
+  
+  player = get_player()
+  if player:
+    state = player.get_playback_state()
+    
+  return state
+
+  
+def is_playing():
+  """
+  Информация о статусе проигрывателя - осуществляется ли проигрывание в текущий момент
+  """
+  state_is_playing = None  
+  state = get_playback_state()
+  
+  if state:
+    if state == STATE_PLAYING:
+      state_is_playing = True
+    else:
+      state_is_playing = False
+      
+  return state_is_playing
+
+
+def is_stopped():
+  """
+  Информация о статусе проигрывателя - остановлено ли проигрывание в текущий момент
+  """
+  state_is_stopped = None
+  state = get_playback_state()
+  
+  if state:
+    if state == STATE_STOPPED:
+      state_is_stopped = True
+    else:
+      state_is_stopped = False
+      
+  return state_is_stopped
+  
+  
 def run_player_aimp():
   """
   Запуск AIMP3
   """
+  if os.name != 'nt':
+    return None
+  
   cmd = [AIMP_PATH, '/PAUSE']
   run_os_command(cmd)  
   sleep(3)
   
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-    
+  player = get_player()
   return player
   
 
@@ -133,51 +205,43 @@ def radio_pause():
   """
   Проигрывание музыки - на паузу
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-  
-  if player:
-    state = player.get_playback_state() 
-    if state == pyaimp.PlayBackState.Playing:
-      player.pause()
-      
-  return player
-
+  if is_playing():
+    player = get_player()
+    if player: player.pause()
+    
 
 def radio_play():
   """
   Запуск проигрывания музыки после паузы
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
-  
-  if player:
-    state = player.get_playback_state() 
-    if state != pyaimp.PlayBackState.Playing:
-      player.play()
-
-  return player
+  if not is_playing():
+    player = get_player()
+    if player: player.play()
 
 
 def radio_stop():
   """
   Остановка проигрывания музыки
   """
-  try:
-    player = pyaimp.Client()
-  except:
-    player = None
+  if not is_stopped():
+    player = get_player()
+    if player: player.stop()
+
+
+def add_to_playlist_and_play(play_object):
+  """
+  Добавить объект к плейлисту проигрывателя и начать проигрывание
+  """
+  player = get_player()
+  if player: player.add_to_playlist_and_play(play_object)
   
-  if player:
-    state = player.get_playback_state() 
-    if state != pyaimp.PlayBackState.Stopped:
-      player.stop()
-      
-  return player
+
+def set_volume(value):
+  """
+  Установить уровень громкости проигрывателя
+  """
+  player = get_player()
+  if player: player.set_volume(value)
 
 
 if __name__=='__main__':
@@ -185,3 +249,5 @@ if __name__=='__main__':
   #load_radio_links()
   #print(get_radio_link_random())
   #print(get_radio_link_by_style('стиль разное'))
+  #run_player_aimp()
+  #radio_pause()

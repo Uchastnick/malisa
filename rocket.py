@@ -17,21 +17,39 @@ import re
 from rocketchat_API.rocketchat import RocketChat
 from requests import sessions
 
-from utils import sleep, run_os_command
+from utils import (
+  sleep, 
+  run_os_command,
+  load_config
+)
 
 # Реквизиты для входа в Rocket.Chat
-from config.config import (
-  ROCKET_CHAT_SERVER,
-  ROCKET_CHAT_LOGIN,
-  ROCKET_CHAT_PWD,
+#from config.config import (
+#  ROCKET_CHAT_SERVER,
+#  ROCKET_CHAT_LOGIN,
+#  ROCKET_CHAT_PWD,
+#  
+#  ROCKET_CHAT_CHANNEL_HELLO,
+#  ROCKET_CHAT_CHANNEL_STAND_UP,
+#  
+#  ROCKET_CHAT_MESSAGE_HELLO,
+#  
+#  WHATTODO_NAME
+#)
+
+config = load_config()
+
+ROCKET_CHAT_SERVER = config.rocket.rocket_chat_server
+ROCKET_CHAT_LOGIN  = config.rocket.rocket_chat_login
+ROCKET_CHAT_PWD    = config.rocket.rocket_chat_pwd
   
-  ROCKET_CHAT_CHANNEL_HELLO,
-  ROCKET_CHAT_CHANNEL_STAND_UP,
+ROCKET_CHAT_CHANNEL_HELLO     = config.rocket.rocket_chat_channel_hello
+ROCKET_CHAT_CHANNEL_STAND_UP  = config.rocket.rocket_chat_channel_stand_up
   
-  ROCKET_CHAT_MESSAGE_HELLO,
-  
-  WHATTODO_NAME
-)
+ROCKET_CHAT_MESSAGE_HELLO = config.rocket.rocket_chat_message_hello
+
+WHATTODO_NAME = config.rocket.whattodo_name
+
 
 proxy_dict = {}
 

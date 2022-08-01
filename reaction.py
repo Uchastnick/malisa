@@ -3,8 +3,10 @@ import yaml
 import re
 from pprint import pprint
 
-import config.config as conf
 import utils
+
+#import config.config as conf
+config = utils.load_config()
 
 
 def from_camel_to_snake_case(name):
@@ -58,10 +60,10 @@ def load_reactions_map(type, is_action_valid_proc):
         
         # Требуемые преобразования
         if key_phrase_exact:
-          key_phrase_exact = [k.lower().replace('%robot_name%', conf.ROBOT_NAME.lower()) for k in key_phrase_exact]
+          key_phrase_exact = [k.lower().replace('%robot_name%', config.main.robot_name.lower()) for k in key_phrase_exact]
           
         if key_phrase_partial:
-          key_phrase_partial = [k.lower().replace('%robot_name%', conf.ROBOT_NAME.lower()) for k in key_phrase_partial]
+          key_phrase_partial = [k.lower().replace('%robot_name%', config.main.robot_name.lower()) for k in key_phrase_partial]
         
         if result_type in ['action', 'user_action'] and result_action:
           result_action_snake_case = from_camel_to_snake_case(result_action)

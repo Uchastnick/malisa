@@ -54,6 +54,13 @@ ANSI_BLACK_ON_WHITE = Back.WHITE + Fore.BLACK
 ANSI_STYLE_RESET = Style.RESET_ALL
 
 import pyttsx3
+
+if os.name == 'posix':
+  try:
+    import speechd
+  except ImportError:
+    pass
+
 from gtts import gTTS
 import speech_recognition as sr
 
@@ -211,9 +218,12 @@ def init_locale():
   """
   Устанавливаем языковой стандарт
   """
-  #locale.setlocale(locale.LC_ALL, '') # from environment
-  #locale.setlocale(locale.LC_ALL, 'ru_RU.utf8') # for Linux
-  locale.setlocale(locale.LC_ALL, 'Russian') # for OS Windows  
+  if os.name == 'nt':
+    locale.setlocale(locale.LC_ALL, 'Russian') # for OS Windows
+  elif os.name == 'posix':
+    locale.setlocale(locale.LC_ALL, 'ru_RU.utf8') # for Linux
+  else:
+    locale.setlocale(locale.LC_ALL, '') # from environment
   
 
 def init_db_quotes():
@@ -1667,7 +1677,12 @@ def set_system_volume(value):
   """
   Установка громкости звука ОС
   """
-  run_os_command([config.app.set_volume_app, f'{value}'], sync=True)
+  set_vol_app = config.app.set_volume_app  
+  if not set_vol_app:
+    return
+
+  if os.name == 'nt' or (os.name == 'posix' and not set_vol_app.lower().endswith('.exe')):
+    run_os_command([set_vol_app, f'{value}'], sync=True)
   
 
 def check_is_app_running(app_name):

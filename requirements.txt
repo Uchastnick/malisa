@@ -18,4 +18,4 @@ SpeechRecognition>=3.8.1
 config-to-object>=1.0.3
 pyinstaller>=5.2
 psutil>=5.7.2
-## PyAudio>=0.2.12
+PyAudio>=0.2.12

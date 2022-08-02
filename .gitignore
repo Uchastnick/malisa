@@ -27,6 +27,7 @@ stand_up/*
 tmp/*
 
 !.gitkeep
+!README.md
 
 .vscode
 .venv

@@ -21,6 +21,8 @@ SPEECH_ENGINE_EN_NAME = 'Microsoft Anna - English (United States)'
 
 ; Русский
 ; 'Anna', 'Elena', 'Arina' (используем голосовые движки от RHVoice)
+; 'Russian' - в случае движка espeak-ng
+; 'russian' - в случае движка espeak
 SPEECH_ENGINE_RU_NAME = 'Arina'
 
 ; Немецкий
@@ -140,6 +142,7 @@ ROCKET_CHAT_APP = 'C:\\Users\\xxx\\AppData\\Local\Programs\\rocketchat\\Rocket.C
 
 AIMP_PATH = 'C:\\Program Files (x86)\\AIMP\\AIMP.exe'
 
+; Можно оставить пустым
 SET_VOLUME_APP = 'setvol.exe'
 
 EXTERNAL_PLAYER_APP = 'mpv'
@@ -159,7 +162,9 @@ YANDEX_SEARCH_ENGINE = 'https://yandex.ru/search/?text='
 GOOGLE_SEARCH_ENGINE = 'https://www.google.com/search?q='
 
 ; Поиск по умолчанию
-WEB_SEARCH_ENGINE_DEFAULT = YANDEX_SEARCH_ENGINE
+; В будущем использовать интерполяцию внутри файла
+WEB_SEARCH_ENGINE_DEFAULT = 'https://yandex.ru/search/?text='
+;WEB_SEARCH_ENGINE_DEFAULT = ${web:YANDEX_SEARCH_ENGINE}
 
 [metronome]
 

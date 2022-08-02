@@ -1,6 +1,6 @@
 @echo off
 set SCRIPT_DIR=%~dp0
-set VENV_SCRIPTS_DIR_FULL_PATH=%SCRIPT_DIR%.venv\Scripts\
+set VENV_SCRIPTS_DIR_FULL_PATH=%SCRIPT_DIR%\.venv\Scripts\
 
 set BASENAME=malisa
 set RELEASE_DIR=_release

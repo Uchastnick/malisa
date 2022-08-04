@@ -6,6 +6,8 @@ config/config.py
 config/config.ini
 config/settings.ini
 
+config/smart_devices.yaml
+
 __todo__.txt
 
 **/__pycache__/

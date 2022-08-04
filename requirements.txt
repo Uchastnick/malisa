@@ -17,5 +17,6 @@ rocketchat_API>=1.25.0
 SpeechRecognition>=3.8.1
 config-to-object>=1.0.3
 pyinstaller>=5.2
+yeelight>=0.7.10
 psutil>=5.7.2
 PyAudio>=0.2.12

@@ -59,18 +59,25 @@ def run_os_command(cmd=[], sync=False, hide=False):
       if os.name == 'nt':
         si.dwFlags |= (subprocess.STARTF_USESHOWWINDOW | subprocess.SW_HIDE)
         si.wShowWindow = subprocess.SW_HIDE
-      shell=True ##
+        shell=True ##
 
     try:      
       if sync:
-        code = subprocess.call(cmd, startupinfo=si, shell=shell, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)
+        if os.name == 'nt':
+          code = subprocess.call(cmd, startupinfo=si, shell=shell, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)
+        else:
+          code = subprocess.call(cmd, shell=shell, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)
+
         if code == 0:
           result = True
         else:
           print("Ошибка при запуске!")
       
       else:
-        p = subprocess.Popen(cmd, startupinfo=si, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)
+        if os.name == 'nt':
+          p = subprocess.Popen(cmd, startupinfo=si, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)
+        else:
+          p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.DEVNULL)          
         result = True
       
     except Exception as e:

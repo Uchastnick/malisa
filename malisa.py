@@ -45,7 +45,7 @@ from colorama import init as init_color
 init_color(autoreset=True)
 from colorama import ansi, Fore, Back, Style
 
-NIGHT_MODE = False
+NIGHT_MODE = (getattr(config.main, 'night_mode', 0) == 1)
 
 ANSI_CYAN_BRIGHT = Fore.CYAN + (Style.BRIGHT if not NIGHT_MODE else '')
 ANSI_GREEN_BRIGHT = Fore.GREEN + (Style.BRIGHT if not NIGHT_MODE else '')
@@ -53,13 +53,22 @@ ANSI_YELLOW_BRIGHT = Fore.YELLOW + (Style.BRIGHT if not NIGHT_MODE else '')
 ANSI_BLACK_ON_WHITE = Back.WHITE + Fore.BLACK
 ANSI_STYLE_RESET = Style.RESET_ALL
 
-import pyttsx3
+# Использование SpeechDispatcher + RHVoice в системах Linux
+using_speechd_engine = False
 
-if os.name == 'posix':
+if os.name == 'posix' and config.engine.use_speech_dispatcher_in_linux == 1:
   try:
+    # Голосовой движок для систем Linux
     import speechd
+    using_speechd_engine = True
   except ImportError:
-    pass
+    using_speechd_engine = False
+    print(e)
+    print(f'\nНе удалось загрузить модуль Speech Dispatcher!\n\a')
+
+if os.name == 'nt' or not using_speechd_engine:
+  # Голосовой движок по умолчанию
+  import pyttsx3
 
 from gtts import gTTS
 import speech_recognition as sr
@@ -77,10 +86,13 @@ import json
 import feedparser
 from pyperclip import copy as copyclip, paste as pasteclip
 
-import pyautogui
-pyautogui.PAUSE = 2
-
-screen_size = pyautogui.size()
+try:
+  import pyautogui
+  pyautogui.PAUSE = 2
+  screen_size = pyautogui.size()  
+except:
+  screen_size = [0, 0]
+  
 x_center, y_center = round(screen_size[0]/2), round(screen_size[1]/2)
 
 from utils import (
@@ -140,6 +152,14 @@ import rocket
 
 # -----------------------------------------------------------------------------
 
+# Функции для работы с системой `умный дом`
+import smarthome as smart
+
+# Набор устройств умного дома, загружается из файла конфигурации `config/smart_devices.yaml`
+smart_devices = {}
+
+# -----------------------------------------------------------------------------
+
 db_quotes = None
 quotes = []
 
@@ -172,9 +192,21 @@ WORD_REPEAT_COUNT = 3
 
 # -----------------------------------------------------------------------------
 
+# Каталог библиотеки книг
+BOOKS_DIR = os.path.join(home_dir, 'books')
+
+books_dir_external = getattr(config.reading, 'external_library_of_books_path', '')
+if books_dir_external: BOOKS_DIR = books_dir_external
+
+if not os.path.isdir(BOOKS_DIR):
+  raise SystemExit(f'Внимание! Не найден каталог с библиотекой книг ("{BOOKS_DIR}")!\n\a')
+
 # Чтение книги порциями
-READ_CHUNK_SIZE = 256 #512
-SENTENCE_DELIMITER = '. '
+# Размер блока данных
+READ_CHUNK_SIZE = getattr(config.reading, 'read_chunk_size', 256)
+
+# Разделитель предложений в тексте
+SENTENCE_DELIMITER = getattr(config.reading, 'sentence_delimiter', '. ')
   
 # -----------------------------------------------------------------------------
 
@@ -270,7 +302,19 @@ def close_databases():
   if db_irr_verbs:
     db_irr_verbs.close()
     db_irr_verbs = None
+    
 
+def close_all():
+  """
+  Закрытие системных ресурсов (используется при выходе)
+  """
+  global tts
+  
+  if tts:
+    if using_speechd_engine: tts.close()
+  
+  close_databases()
+  
   
 def load_quotes():
   """
@@ -385,7 +429,7 @@ def play_clock_alarm():
   if os.path.isfile(file_alarm):
     run_os_command(
       [config.app.external_player_app,
-       '--quiet', '--really-quiet', '--no-video', '--volume=75',
+       '--quiet', '--really-quiet', '--no-video',
        file_alarm],
       sync=True, hide=True)
   
@@ -414,7 +458,12 @@ def make_os_alarm_clock(**kwargs):
   if not hours:
     return
   
-  run_script = os.path.join(home_dir, 'script', 'clock_alarm.bat')
+  if os.name == 'nt':
+    script_name = 'clock_alarm.bat'
+  else:
+    script_name = 'clock_alarm.sh'
+    
+  run_script = os.path.join(home_dir, 'script', script_name)
 
   # Определим день запуска
   now = datetime.now()
@@ -574,12 +623,25 @@ def print_voice_engines_info():
   Вывести список доступных голосовых движков в системе
   """
   print('\n-- Список голосовых движков в системе: --\n')
-  if not tts: init_tts()
   
+  if not tts:
+    init_tts()
+
   if tts:
-    voices = tts.getProperty('voices')  
-    for index, voice in enumerate(voices):
-      print(f"{index}: '{voice.name}' - '{voice.id}' - {str(voice.languages)}")
+    if using_speechd_engine:
+      # Используем голосовой движок посредством SpeechDispatcher
+      voices = tts.list_synthesis_voices()
+      for index, voice in enumerate(voices):
+         (name, lang, dialect) = voice
+         print(f"{index}: '{name}' - '{lang}' - {dialect}")
+  
+    else:
+      # По умолчанию используем голосовой движок посредством PyTTSX3
+      voices = tts.getProperty('voices')
+      for index, voice in enumerate(voices):
+        print(f"{index}: '{voice.name}' - '{voice.id}' - {str(voice.languages)}")
+        
+    print()
 
       
 def get_lang_tag(lang_name):
@@ -637,60 +699,83 @@ def init_tts():
   global en_voice_id
   global de_voice_id
   global current_tts_lang
-  
-  if tts: return
 
-  tts = pyttsx3.init()
+  if tts:
+    return tts
 
-  rate = tts.getProperty('rate')
-  tts.setProperty('rate', config.engine.speech_rate_ru)
-
-  volume = tts.getProperty('volume')
-  tts.setProperty('volume', config.engine.speech_volume)
-  
-  voices = tts.getProperty('voices')
-  
-  for voice in voices:
-    #print(f'{voice.name} - {voice.id} - {voice.languages}')
+  if using_speechd_engine:
+    # Используем голосовой движок посредством SpeechDispatcher
+    tts = speechd.SSIPClient('malisa')
+    tts.set_output_module('rhvoice')
     
-    # Английский
-    if not en_voice_id:
-      if config.engine.speech_engine_en_name:
-        if voice.name == config.engine.speech_engine_en_name: en_voice_id = voice.id
-      else:
-        if 'Microsoft Anna' in voice.name: en_voice_id = voice.id
-    
-    # Русский
-    if not ru_voice_id:
-      if config.engine.speech_engine_ru_name:
-        if voice.name == config.engine.speech_engine_ru_name: ru_voice_id = voice.id
-    
-    # Немецкий
-    if not de_voice_id:
-      if config.engine.speech_engine_de_name:
-        if voice.name == config.engine.speech_engine_de_name: de_voice_id = voice.id
-
-  # По возможности, первоначально устанавливается русский язык произношения
-  # Если ничего не найдено - язык по умолчанию
-  if ru_voice_id:
-    tts.setProperty('voice', ru_voice_id)
-    tts.setProperty('rate', config.engine.speech_rate_ru)
     current_tts_lang = 'ru'
-  
-  elif en_voice_id:
-    tts.setProperty('voice', en_voice_id)
-    tts.setProperty('rate', config.engine.speech_rate_en)
-    current_tts_lang = 'en'
-  
-  elif de_voice_id:
-    tts.setProperty('voice', de_voice_id)
-    tts.setProperty('rate', config.engine.speech_rate_de)
-    current_tts_lang = 'de'
+    
+    # todo:
+    tts.set_language(current_tts_lang)
+    tts.set_synthesis_voice(config.engine.speech_engine_ru_name)
+
+    #tts.set_rate(int(config.engine.speech_rate_ru))
+    tts.set_volume(int(config.engine.speech_volume) * 100)
+    
+    tts.set_punctuation(speechd.PunctuationMode.SOME)
   
   else:
-    tts.setProperty('voice', 'default')
-    tts.setProperty('rate', config.engine.speech_rate_en)
-    current_tts_lang = 'en'
+    # По умолчанию используем голосовой движок посредством PyTTSX3
+    tts = pyttsx3.init()
+
+    rate = tts.getProperty('rate')
+    tts.setProperty('rate', config.engine.speech_rate_ru)
+
+    volume = tts.getProperty('volume')
+    tts.setProperty('volume', config.engine.speech_volume)
+    
+    voices = tts.getProperty('voices')
+    
+    for voice in voices:
+      #print(f'{voice.name} - {voice.id} - {voice.languages}')
+      
+      # Английский
+      if not en_voice_id:
+        if config.engine.speech_engine_en_name:
+          if voice.name == config.engine.speech_engine_en_name:
+            en_voice_id = voice.id
+        else:
+          if 'Microsoft Anna' in voice.name:
+            en_voice_id = voice.id
+      
+      # Русский
+      if not ru_voice_id:
+        if config.engine.speech_engine_ru_name:
+          if voice.name == config.engine.speech_engine_ru_name:
+            ru_voice_id = voice.id
+      
+      # Немецкий
+      if not de_voice_id:
+        if config.engine.speech_engine_de_name:
+          if voice.name == config.engine.speech_engine_de_name:
+            de_voice_id = voice.id
+
+    # По возможности, первоначально устанавливается русский язык произношения
+    # Если ничего не найдено - язык по умолчанию
+    if ru_voice_id:
+      tts.setProperty('voice', ru_voice_id)
+      tts.setProperty('rate', config.engine.speech_rate_ru)
+      current_tts_lang = 'ru'
+    
+    elif en_voice_id:
+      tts.setProperty('voice', en_voice_id)
+      tts.setProperty('rate', config.engine.speech_rate_en)
+      current_tts_lang = 'en'
+    
+    elif de_voice_id:
+      tts.setProperty('voice', de_voice_id)
+      tts.setProperty('rate', config.engine.speech_rate_de)
+      current_tts_lang = 'de'
+    
+    else:
+      tts.setProperty('voice', 'default')
+      tts.setProperty('rate', config.engine.speech_rate_en)
+      current_tts_lang = 'en'
     
   return tts
 
@@ -703,20 +788,46 @@ def say(text, lang='ru'):
   global current_tts_lang
   
   if tts:
-    if lang != current_tts_lang:
-      if lang == 'ru': 
-        tts.setProperty('voice', ru_voice_id)
-        tts.setProperty('rate', config.engine.speech_rate_ru)
-      elif lang == 'en': 
-        tts.setProperty('voice', en_voice_id)
-        tts.setProperty('rate', config.engine.speech_rate_en)
-      elif lang == 'de': 
-        tts.setProperty('voice', de_voice_id)
-        tts.setProperty('rate', config.engine.speech_rate_de)
-      current_tts_lang = lang
+  
+    if using_speechd_engine:
+      # Используем голосовой движок посредством SpeechDispatcher
+      # todo
+      if lang != current_tts_lang:
+        current_tts_lang = lang
+
+      # Обеспечиваем синхронное выполнение озвучивания текста
+      is_speaking = True
+      
+      def stop_speaking(cb_type):
+        nonlocal is_speaking
+        #sleep(1)
+        is_speaking = False
+
+      tts.speak(text, 
+                callback = stop_speaking,
+                event_types = (speechd.CallbackType.PAUSE, 
+                               speechd.CallbackType.CANCEL,
+                               speechd.CallbackType.END))
+      while is_speaking:
+        pass
     
-    tts.say(text)
-    tts.runAndWait()
+    else:
+      # По умолчанию используем голосовой движок посредством PyTTSX3
+      if lang != current_tts_lang:
+        current_tts_lang = lang
+        
+        if lang == 'ru': 
+          tts.setProperty('voice', ru_voice_id)
+          tts.setProperty('rate', config.engine.speech_rate_ru)
+        elif lang == 'en': 
+          tts.setProperty('voice', en_voice_id)
+          tts.setProperty('rate', config.engine.speech_rate_en)
+        elif lang == 'de': 
+          tts.setProperty('voice', de_voice_id)
+          tts.setProperty('rate', config.engine.speech_rate_de)
+        
+      tts.say(text)
+      tts.runAndWait()
     
     
 def is_external_player_exists():
@@ -753,7 +864,7 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True):
   if tts_result:
     result = run_os_command(
       [config.app.external_player_app,
-       '--quiet', '--really-quiet', '--no-video', '--volume=50',
+       '--quiet', '--really-quiet', '--no-video',
        file_mp3],
       sync=True,
       hide=hide_external)
@@ -784,11 +895,12 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
     text = ''
     #reco = sr.Recognizer()
     
-    if clear_screen: print(ansi.clear_screen())
-    
     #print('Проверка микрофона...')
     with sr.Microphone(device_index = config.mic.microphone_index) as source:
-      #print('Настройка...')      
+      # Очистка экрана
+      if clear_screen: print(ansi.clear_screen())
+      
+      #print('Настройка...')
       # Настройка обработки посторонних шумов
       reco.adjust_for_ambient_noise(source, duration = ambient_duration)
       
@@ -824,6 +936,19 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
     return text
     
 
+def is_stop_word(text):
+  """
+  Проверка наличя стоп-слова в тексте
+  """
+  if 'стоп' in text or 'хватит' in text \
+      or 'окей' in text or "о'кей" in text \
+      or 'нет' == text \
+      or 'спасибо' in text:
+    return True
+  else:
+    return False
+
+
 def check_stop(listen_timeout=3, clear_screen=True, silently=True):
   """
   Проверка возможности выхода в циклах
@@ -832,10 +957,7 @@ def check_stop(listen_timeout=3, clear_screen=True, silently=True):
 
   text = listen_and_recognize(listen_timeout=listen_timeout, clear_screen=clear_screen).lower()
   
-  if 'стоп' in text or 'хватит' in text \
-      or 'окей' in text or "о'кей" in text \
-      or 'нет' == text \
-      or 'спасибо' in text:
+  if is_stop_word(text):
     say('Окей')
     return True
   else:
@@ -1035,10 +1157,10 @@ def act_i_am_ready(**kwargs):
 def act_exit(**kwargs):
   """
   Закрытие программы-робота
-  """
-  close_databases()
-  
+  """  
   say('Пока!')
+  
+  close_all()
   print(ansi.clear_screen())
   sys.exit(0)
   
@@ -1468,10 +1590,10 @@ def act_pc_shutdown(**kwargs):
   """
   Завершение работы компьютера
   """
-  show_caption('Завершение работы')
-  close_databases()
-  
+  show_caption('Завершение работы')  
   say('Счастливо!')
+  
+  close_all()
   run_os_command(['shutdown', '/s', '/t', '15'])
   
 
@@ -1480,9 +1602,9 @@ def act_pc_restart(**kwargs):
   Перезагрузка компьютера
   """
   show_caption('Перезагрузка')
-  close_databases()
-  
   say('Перезагрузка!')
+
+  close_all()  
   run_os_command(['shutdown', '/r', '/t', '10'])
   
 
@@ -2136,7 +2258,7 @@ def act_translate_text(**kwargs):
     if not from_lang: from_lang = 'auto'
     
   # На какой язык
-  (text, to_lang_name) = extract_value_from_text(text, 'на', '')  
+  (text, to_lang_name) = extract_value_from_text(text, 'на', '')
 
   if not to_lang_name:
     if from_lang not in ['auto', 'ru']:
@@ -2181,9 +2303,13 @@ def act_read_available_books_list(**kwargs):
   """
   Озвучить список доступных книг
   """
+  if not os.path.isdir(BOOKS_DIR):
+    say('Внимание! Не найден каталог с библиотекой книг!')
+    return
+  
   show_caption('Список доступных книг')
   
-  for file_name in os.listdir(os.path.join(home_dir, 'books')):
+  for file_name in os.listdir(BOOKS_DIR):
     file_name_lower = file_name.lower()
 
     if ( file_name_lower.endswith('.txt') \
@@ -2200,13 +2326,17 @@ def act_read_available_books_list(**kwargs):
   
 def get_random_book_file(prefer_name=''):
   """
-  Выбрать случайный файл-книгу из каталога `books`
+  Выбрать случайный файл-книгу из каталога BOOKS_DIR
   Возможно использовать совпадение по названию
   """
+  if not os.path.isdir(BOOKS_DIR):
+    say('Внимание! Не найден каталог с библиотекой книг!')
+    return
+  
   file = ''  
   files = []
   
-  for file_name in os.listdir(os.path.join(home_dir, 'books')):
+  for file_name in os.listdir(BOOKS_DIR):
     file_name_lower = file_name.lower()
     
     if ( file_name_lower.endswith('.txt') \
@@ -2297,10 +2427,16 @@ def read_text_by_chunks(text, from_chunk=0, use_external_engine=True, lang='ru')
   
   # Озвучивание частями, в цикле
   tail = ''
-  for i in range(from_chunk * READ_CHUNK_SIZE, len_text, READ_CHUNK_SIZE):
+  
+  #for i in range(from_chunk * READ_CHUNK_SIZE, len_text, READ_CHUNK_SIZE):
+  i = from_chunk * READ_CHUNK_SIZE
+  while i < len_text:
+  
     data = text[i : i + READ_CHUNK_SIZE]
     data = tail + data
     chunk_count += 1    
+    jump_blocks = 1
+    
     #if not data: break ##
 
     goal_text = ''    
@@ -2325,45 +2461,94 @@ def read_text_by_chunks(text, from_chunk=0, use_external_engine=True, lang='ru')
       # !ВНИМАНИЕ: используемый внешний проигрыватель 
       # уже позволяет поставить воспроизведение на паузу, командой с клавиатуры!
 
-      # Остановка озвучивания, голосовой командой
-      if check_stop(listen_timeout=1, clear_screen=False):
+      # Контроль голосовых команд в процессе озвучивания книги
+      control_text = listen_and_recognize(listen_timeout=1, clear_screen=False).lower()
+
+      # Прерывание озвучивания, голосовой командой
+      if is_stop_word(control_text):
+        say('Окей')
         is_exit = True
         break # Стоп
+      
+      # Конроль перехода вперёд/назад на заданное количество блоков
+      jump_blocks = check_for_jump(control_text)
+      if jump_blocks != 0:
+        tail = ''
+        say(f'Переход, количество блоков: {jump_blocks}')
+      else:
+        jump_blocks = 1      
+        
+    i += (READ_CHUNK_SIZE * jump_blocks)
+    if i < 0: i = 0
 
   if is_exit:
     info = f'Вы остановились на блоке номер "{chunk_count}"'
     print(info)
     say(info)
+    
+    
+def check_for_jump(text):
+  """
+  Проверка перехода вперёд/назад по тексту на заданное количество блоков.
+  Возвращает количество блоков со знаком. Знак минус означает движение назад, иначе - вперёд.
+  Возвращает 0, если переход не требуется.
+  """
+  jump_blocks = 0
+
+  if 'вперёд' in text \
+     or 'вперед' in text \
+     or 'назад' in text \
+     or 'переход' in text \
+     or 'перейти' in text:
+  
+    sign = +1
+    if 'назад' in text: sign = -1
+    
+    blocks = 0
+    
+    (text, blocks_text) = extract_value_from_text(text, 'на', '')
+    try:
+      blocks = int(re.findall(r'^(\d+) блок\D*?$', blocks_text)[0])
+    except:
+      blocks = 0
+      
+    jump_blocks = sign * blocks
+    
+  return jump_blocks
         
 
 def read_local_book(file='', prefer_name='', encoding='utf-8', from_chunk=0, use_external_engine=True, lang='ru'):
   """
   Загрузить и прочитать книгу из локального каталога
   """
+  if not os.path.isdir(BOOKS_DIR):
+    say('Внимание! Не найден каталог с библиотекой книг!')
+    return
+  
   show_caption('Чтение книги')
   
-  # Если файл явно не задан - выбираем случайный файл из каталога `books`
+  # Если файл явно не задан - выбираем случайный файл из каталога BOOKS_DIR
   # Возможно использовать совпадение по названию
   if not file:
     file = get_random_book_file(prefer_name=prefer_name)
     if not prefer_name: from_chunk = 0
-    
+
   # Искомый файл
-  file_path = os.path.join(home_dir, 'books', file)
-  
+  file_path = os.path.join(BOOKS_DIR, file)
+
   if os.path.isfile(file_path):
     show_caption(f'Читаем файл "{file}", с блока {from_chunk}')
     
     book = ''
-    file_path = file_path.lower()
+    file_path_lower = file_path.lower()
     
-    if file_path.endswith('.txt'):
+    if file_path_lower.endswith('.txt'):
       book = load_text_file(file_path, encoding=encoding)
     
-    elif file_path.endswith('.fb2'):
+    elif file_path_lower.endswith('.fb2'):
       book = load_fb2_file(file_path)
     
-    elif file_path.endswith('.pdf'):
+    elif file_path_lower.endswith('.pdf'):
       book = load_pdf_file(file_path)
     
     if book:
@@ -2793,8 +2978,8 @@ def run(config_file=None):
   ##beep()
   say(f'Привет. {config.main.robot_name} на связи.')
   
-  #DEBUG    
-  #print('OK')
+  #DEBUG
+  #print('\nOK')
   #sys.exit(0)
   #end DEBUG
   

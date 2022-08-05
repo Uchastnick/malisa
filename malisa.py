@@ -160,6 +160,14 @@ smart_devices = {}
 
 # -----------------------------------------------------------------------------
 
+# Поиск в Википедии
+import wikipedia as wiki
+
+# Максимальное количество предложений, возвращаемых при поиске в Википедии
+WIKI_SENTENCES_COUNT = getattr(config.wiki, 'wiki_sentences_count', 5)
+
+# -----------------------------------------------------------------------------
+
 db_quotes = None
 quotes = []
 
@@ -1139,6 +1147,7 @@ def make_reaction(text):
   ## -- end Выбор реакции системы ----------------------------------------------##    
 ## ---------------------------------------------------------------------------------------------##
 
+## @@
 ## -- ACTIONS (действия) ---------------------------------------------------------------------- ##
 def act_i_am_ready(**kwargs):
   """
@@ -2193,14 +2202,21 @@ def act_learn_words_deutsch(**kwargs):
   
 def act_web_search(**kwargs):
   """
-  Поиск указанноого текста в сети Интернет
+  Поиск указанного текста в сети Интернет
+  
+  Общий формат команды (параметра `text`):
+    text == "(`поиск` | `найди` | `поищи` | `в сети` | `в интернете` | `в интернет`) GOALTEXT"
+
+  Результат поиска должен отобразиться в интернет-браузере, 
+  который можно указать в файле конфигурации, либо использовать браузер по умолчанию.
+  Также возможно сменить систему поиска (по умолчанию используется Яндекс).
   """
   text = kwargs.get('text', '')
   if not text: return
   
   show_caption('Поиск в сети')
   
-  keywords = 'поиск|найди|поищи|сети|интернете|интернет'
+  keywords = 'поиск|найди|поищи|сети|интернете|интернет '
 
   try:
     search_string = re.split(keywords, text)[-1].strip()
@@ -2907,8 +2923,78 @@ def act_make_metronome(**kwargs):
   else:
     show_caption('Ошибка при разборе параметров')
 
+
+def wiki_search(text, lang='ru'):
+  """
+  Поиск указанного текста в Википедии
+  """
+  result_text = None
+
+  try:
+    wiki.set_lang(lang)
+    result_text = wiki.summary(text, sentences = WIKI_SENTENCES_COUNT)
+    result_text = result_text.replace('\n', '')
+  except:
+    result_text = None
+
+  return result_text
   
-#@@
+
+def act_wiki_search(**kwargs):
+  """
+  Поиск указанноого текста в Википедии
+
+  Общий формат команды (параметра `text`):
+    text == "(`вики` | `википедия` | `поиск в википедии` | `найди в википедии` | `посмотри википедию`) GOALTEXT [`язык` LANGNAME]"
+
+  Результат поиска отображается в консоли и озвучивается роботом.
+  Возможно указать язык поиска. Также в файле конфигурации настраивается количество показываемых предложений.
+  """
+  text = kwargs.get('text', '')
+  if not text: return
+  
+  use_external_engine = True
+  
+  show_caption('Поиск в Википедии')
+
+  # По умолчанию - русский язык
+  (text, lang_name) = extract_value_from_text(text, 'язык', '')
+  
+  if not lang_name:
+    lang = 'ru'
+  else:
+    lang = get_lang_tag(lang_name)
+    if not lang: lang = 'ru'
+    
+  # Отделяем ключевые слова от искомого текста
+  keywords = 'вики |википедии|википедия|википедию'
+  try:
+    search_string = re.split(keywords, text)[-1].strip()
+  except:
+    search_string = ''
+    
+  if search_string:
+    # Поиск
+    result_text = wiki_search(search_string, lang=lang)
+    
+    if result_text:    
+      print(f'\n {result_text}\n')
+
+      if use_external_engine:
+        say('Ожидайте.')
+        say_by_external_engine(result_text, lang=lang)
+      else:
+        say(result_text, lang=lang)
+      
+      say('Готово.')
+    else:
+      say('Ничего не найдено!')
+      
+  else:
+    say('Не определён текст для поиска.')
+  
+  
+## @@
 ## -- end ACTIONS (действия) ------------------------------------------------------------------ ##
 
 

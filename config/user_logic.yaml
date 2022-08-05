@@ -29,3 +29,17 @@ key_phrase_partial:
 result_type: 'user_action'
 result_action: 'AirPollutionBarnaul'
 action_need_parameter_text: 0
+
+# Информация о загруженности на дорогах в городе Барнаул
+---
+key_phrase_exact:
+- 'пробки'
+- 'информация о пробках'
+- 'пробки на дорогах'
+key_phrase_partial:
+- 'трафик'
+- 'траффик'
+- 'загруженность на дорогах'
+result_type: 'user_action'
+result_action: 'TrafficBarnaul'
+action_need_parameter_text: 0

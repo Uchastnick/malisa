@@ -125,7 +125,8 @@ TIME_TO_SLEEP_HOUR = 23
 TIME_TO_SLEEP_MINUTE = 40
 
 ; Отключить проверку времени отхода ко сну
-; DISABLE_SLEEP_TIME_CHECKING = 1 ; only for real bad guys, rebels and hackers
+; only for real bad guys, rebels and hackers
+; DISABLE_SLEEP_TIME_CHECKING = 1
 ; -----------------------------------------------------------------------------
 
 [radio]
@@ -220,6 +221,13 @@ METRONOME_USE_SILENCE_IN_SHUFFLE = False
 
 ; Кратное число тактов перед возможностью выхода по голосовой команде
 METRONOME_BEATS_COUNT_BEFORE_EXIT = 24
+
+[wiki]
+
+; -----------------------------------------------------------------------------
+; Параметры поиска в википедии
+; Максимальное количество предложений, возвращаемых при поиске в Википедии
+WIKI_SENTENCES_COUNT = 5
 
 [smarthome]
 

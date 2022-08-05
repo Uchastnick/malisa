@@ -6,22 +6,34 @@ except:
 import malisa as m
 
 import requests
-import lxml.html
+
+try:
+  import xml.etree.cElementTree as ET
+except ImportError:
+  import xml.etree.ElementTree as ET
 
 
-def get_air_pollution_barnaul_info():
+def get_traffic_barnaul_info():
   """
-  Получить общую информацию об уровене загрязнения воздуха в городе Барнаул
+  Информация о загруженности на дорогах в городе Барнаул
   """
   result = None  
-  url = 'http://meteo22.ru'
+  url = 'https://export.yandex.ru/bar/reginfo.xml?region=197'
   
   try:
     content = requests.get(url).text
-    html_tree = lxml.html.fromstring(content)
+    xml_tree = ET.fromstring(content)
 
-    result = html_tree.xpath('.//div[@class="pollution"]//div[@class="table table10"]//div[@class="td5"]')[-2].text
-    result = result.replace('г.', ' года')
+    for e in xml_tree:
+      if e.tag == 'traffic':
+        for traffic_ch in e:
+          if traffic_ch.tag == 'region':
+            for region_ch in traffic_ch:
+              if region_ch.tag == 'hint' and region_ch.attrib.get('lang', '') == 'ru':
+                result = region_ch.text
+                break
+            break
+        break
   
   except Exception as e:
     print(e)
@@ -32,7 +44,7 @@ def get_air_pollution_barnaul_info():
 
 def action(**kwargs):
   """
-  Информация об уровене загрязнения воздуха в городе Барнаул
+  Информация о загруженности на дорогах в городе Барнаул
   """  
   
   # Распознанный внешней процедурой текст (передаётся в action-процедуру)
@@ -45,8 +57,8 @@ def action(**kwargs):
   # BEGIN                     #
   #############################
   
-  info = get_air_pollution_barnaul_info()
-
+  info = get_traffic_barnaul_info()
+  
   if info:
     print(f'\n {info}')
     m.say(info)

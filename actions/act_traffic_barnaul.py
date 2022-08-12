@@ -17,28 +17,38 @@ def get_traffic_barnaul_info():
   """
   Информация о загруженности на дорогах в городе Барнаул
   """
-  result = None  
+  result = None
   url = 'https://export.yandex.ru/bar/reginfo.xml?region=197'
   
+  level = None
+
   try:
     content = requests.get(url).text
     xml_tree = ET.fromstring(content)
 
+    # todo: сделать через прямую выборку
     for e in xml_tree:
       if e.tag == 'traffic':
         for traffic_ch in e:
           if traffic_ch.tag == 'region':
             for region_ch in traffic_ch:
-              if region_ch.tag == 'hint' and region_ch.attrib.get('lang', '') == 'ru':
+              
+              if region_ch.tag == 'level':
+                level = region_ch.text
+              elif region_ch.tag == 'hint' and region_ch.attrib.get('lang', '') == 'ru':
                 result = region_ch.text
                 break
+                
             break
         break
   
   except Exception as e:
     print(e)
     result = None
-    
+
+  if result and level:
+    result = f'Уровень баллов {level}. {result}.'
+
   return result
   
 

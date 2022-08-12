@@ -23,6 +23,7 @@ mv -v ${LIB_DIR}/*.md ${LIB_DIR}/*.bat ${LIB_DIR}/*.sh ${DIST_DIR}/${BASENAME}
 mv -v ${LIB_DIR}/libpython3*.so* ${LIB_DIR}/base_library.zip ${DIST_DIR}/${BASENAME}
 
 rm -v ${DIST_DIR}/${BASENAME}/*.bat
+rm -v ${DIST_DIR}/${BASENAME}/_dist/*.zip
 rm -v ${ARCHIVE_FILE}
 
 7z a -tzip -r0 ${ARCHIVE_FILE} ${DIST_DIR}/${BASENAME}

@@ -5,11 +5,12 @@
 # Основная лампа
 ---
 type: 'bulb' # Тип устройства: 'bulb' - лампа, ...
+brand: 'yeelight' # Брэнд: 'yeelight', 'xiaomi', 'yandex', ...
 name: 'Основная лампа' # Наименование
 ip: '' # ip-адрес
 port: '' # Порт
 default: True # Используется ли по умолчанию: True|False
-model: 'color' # Цветная либо обычная: 'color'|'simple'
+model: 'color' # Цветная либо обычная: 'color'|'mono'
 color_mode: 1 # Режим цвета: 1|0
 ct: 2700 # Цветовая температура
 hue: 359 # Оттенок

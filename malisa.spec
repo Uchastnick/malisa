@@ -3,7 +3,7 @@
 
 block_cipher = None
 
-added_files = [
+data_files = [
   ('_distr', '_distr'),
   ('actions/*.*', 'actions'),
 
@@ -14,6 +14,7 @@ added_files = [
   ('config/config.in_', 'config'),
   ('config/logic.yaml', 'config'),
   ('config/user_logic.yaml', 'config'),
+  ('config/smart_devices.yam_', 'config'),
   ('config/radio_links.yaml', 'config'),
   ('config/words.yaml', 'config'),
   ('config/README.md', 'config'),
@@ -43,23 +44,31 @@ added_files = [
   ('INSTALL.ru.md', 'docs')
 ]
 
+hidden_modules = [
+  'actions', 'malisa'
+]
+
 excludes = [
   # 'tk', 'tkinter'
 ]
 
 hook_files = [
-  './hook.py'
+  # './hook.py'
 ]
+
+#from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+#data_files += collect_data_files('actions')
+#hidden_modules += collect_submodules('actions')
 
 a = Analysis(
     ['malisa.py'],
     pathex=[],
     binaries=[],
-    datas = added_files,
-    hiddenimports=['actions'],
+    datas = data_files,
+    hiddenimports = hidden_modules,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks = hook_files,
     excludes = excludes,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

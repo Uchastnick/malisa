@@ -35,13 +35,25 @@ SPEECH_ENGINE_DE_NAME = ''
 SPEECH_VOLUME = 0.4
 
 ; Скорость речи робота
-SPEECH_RATE_RU = 145
+SPEECH_RATE_RU = 185 ; 145
 SPEECH_RATE_EN = 100
 SPEECH_RATE_DE = 100
 
 ; Использовать связку SpeechDispatcher + RHVoice в системах Linux (1 | 0)
 ; Иначе - по умолчанию будет использоваться PyTTSX + ESpeak
 USE_SPEECH_DISPATCHER_IN_LINUX = 1
+
+; Распознавание речи через интернет, посредством Google (используется по умолчанию)
+SPEECH_RECOGNITION_REMOTE_VIA_GOOGLE = 1
+
+; Распознавание речи локально, посредством CMU Sphinx (в текущей версии не поддерживается)
+SPEECH_RECOGNITION_LOCAL_VIA_SPHINX = 0
+
+; Распознавание речи локально, посредством Snowboy AI (в текущей версии не поддерживается)
+SPEECH_RECOGNITION_LOCAL_VIA_SNOWBOY = 0
+
+; Распознавание речи локально, посредством Vosk (в текущей версии не поддерживается)
+SPEECH_RECOGNITION_LOCAL_VIA_VOSK = 0
 
 ; -----------------------------------------------------------------------------
 ; Громкость операционной системы по умолчанию
@@ -61,6 +73,9 @@ READ_CHUNK_SIZE = 256
 
 ; Разделитель предложений в тексте книги
 SENTENCE_DELIMITER = '. '
+
+; Скорость чтения текста книг (0.01 - 100)
+BOOKS_READING_SPEED = 1.1
 
 [weather]
 
@@ -166,9 +181,11 @@ ROCKET_CHAT_APP = 'C:\\Users\\xxx\\AppData\\Local\Programs\\rocketchat\\Rocket.C
 AIMP_PATH = 'C:\\Program Files (x86)\\AIMP\\AIMP.exe'
 
 ; Можно оставить пустым
-SET_VOLUME_APP = 'setvol.exe'
+SET_VOLUME_APP = '' ; 'setvol.exe'
 
 EXTERNAL_PLAYER_APP = 'mpv'
+
+MPV_APP_PATH = 'mpv'
 
 [web]
 
@@ -229,10 +246,23 @@ METRONOME_BEATS_COUNT_BEFORE_EXIT = 24
 ; Максимальное количество предложений, возвращаемых при поиске в Википедии
 WIKI_SENTENCES_COUNT = 5
 
+; Использовать внешний голосовой движок (боле разборчивый) для чтения текстов Википедии (True | False)
+; Иначе - использовать внутренний голосовй движок
+WIKI_USE_EXTERNAL_SPEECH_ENGINE = True
+
+; Скорость чтения текста из Википедии (0.01 - 100)
+WIKI_READING_SPEED = 1.2
+
 [smarthome]
 
 ; -----------------------------------------------------------------------------
 ; Параметры для работы с системой `умный дом`
+
+; Цветовая температура по умолчанию, для устройства освещения по умолчанию
+BULB_COLOR_TEMP_DEFAULT = 3700
+
+; Яркость по умолчанию, для устройства освещения по умолчанию
+BULB_BRIGHTNESS_DEFAULT = 95
 
 [other]
 

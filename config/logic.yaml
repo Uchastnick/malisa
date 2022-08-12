@@ -94,7 +94,12 @@ result_action: 'ReadAvailableBooksList'
 #
 #  Информация читается порциями (БЛОКАМИ) в цикле.
 #  Для выхода из цикла после каждого блока даётся пара секунд,
-#  чтобы произнести одно или несколько ключевых слов: ('стоп' | 'хватит' | 'окей' | "о'кей" | 'спасибо')
+#  чтобы произнести одно или несколько ключевых слов:
+#  - ('стоп' | 'хватит' | 'окей' | "о'кей" | 'спасибо')
+#
+#  Также, в этот момент возможно указать переход на заданное количество блоков, соответствующими командами:
+#  - ('вперёд') на COUNT `блоков`
+#  - ('назад') на COUNT `блоков`
 #
 #  При выходе, робот указывает, на каком блоке Вы остановились.
 #  Можно начать чтение с заданного блока.
@@ -782,6 +787,155 @@ result_type: 'action'
 result_action: 'MakeTimer'
 action_need_parameter_text: 1
 
+# Включение света (основной лампы)
+---
+key_phrase_exact:
+- 'включи свет'
+- 'включить свет'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightOn'
+action_need_parameter_text: 1
+
+# Выключение света (основной лампы)
+---
+key_phrase_exact:
+- 'выключи свет'
+- 'выключить свет'
+- 'гаси свет'
+key_phrase_partial:
+- 'погаси'
+- 'потуши'
+result_type: 'action'
+result_action: 'LightOff'
+action_need_parameter_text: 1
+
+# Обычный свет (базовые параметры)
+---
+key_phrase_exact:
+- 'обычный свет'
+- 'включи обычный свет'
+- 'нормальный свет'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightNormal'
+action_need_parameter_text: 1
+
+# Тревога! (индикация светом)
+---
+key_phrase_exact:
+- 'тревога'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightAlarm'
+action_need_parameter_text: 1
+
+# Красный свет
+---
+key_phrase_exact:
+- 'красный свет'
+- 'включи красный'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightRed'
+action_need_parameter_text: 1
+
+# Зелёный свет
+---
+key_phrase_exact:
+- 'зелёный свет'
+- 'включи зелёный'
+- 'зелень'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightGreen'
+action_need_parameter_text: 1
+
+# Синий свет
+---
+key_phrase_exact:
+- 'синий свет'
+- 'включи синий'
+- 'синева'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightBlue'
+action_need_parameter_text: 1
+
+# Жёлтый свет
+---
+key_phrase_exact:
+- 'жёлтый свет'
+- 'включи жёлтый'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightYellow'
+action_need_parameter_text: 1
+
+# Оранжевый свет
+---
+key_phrase_exact:
+- 'оранжевый свет'
+- 'включи оранжевый'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightOrange'
+action_need_parameter_text: 1
+
+# Голубой свет
+---
+key_phrase_exact:
+- 'голубой свет'
+- 'включи голубой'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightBluelight'
+action_need_parameter_text: 1
+
+# Фиолетовый свет
+---
+key_phrase_exact:
+- 'фиолетовый свет'
+- 'включи фиолетовый'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightPurple'
+action_need_parameter_text: 1
+
+# Розовый свет
+---
+key_phrase_exact:
+- 'розовый свет'
+- 'включи розовый'
+key_phrase_partial:
+result_type: 'action'
+result_action: 'LightPink'
+action_need_parameter_text: 1
+
+# Яркость
+#
+# Установка яркости на заданное количество процентов (10-100)
+---
+key_phrase_exact:
+key_phrase_partial:
+- 'яркость'
+- 'яркости'
+result_type: 'action'
+result_action: 'LightBrightness'
+action_need_parameter_text: 1
+
+# Цветовая температура
+#
+# Установка цветовой температуры на указанную величину (1500-7700)
+---
+key_phrase_exact:
+key_phrase_partial:
+- 'цветовая температура'
+- 'температура цвета'
+result_type: 'action'
+result_action: 'LightColorTemperature'
+action_need_parameter_text: 1
+
 # Список доступных команд
 # (вспомогательная процедура)
 ---
@@ -796,6 +950,7 @@ result_speech:
 - 'Список книг'
 - 'Чтение книги'
 - 'Перевод'
+- 'Поиск в википедии'
 - 'Поиск в сети'
 - 'Анекдот'
 - 'Мотиватор'
@@ -834,10 +989,18 @@ result_speech:
 - 'Радио на паузу'
 - 'Радио продолжить'
 - 'Статистика по недвижимости'
+- 'Загрязнение воздуха'
+- 'Пробки на дорогах'
 - 'Сколько времени'
 - 'Таймер'
 - 'Метроном'
 - 'Будильник'
+- 'Включи свет'
+- 'Выключи свет'
+- 'Обычный свет'
+- 'Включи красный, зелёный, синий, жёлтый, оранжевый, голубой, фиолетовый, розовый'
+- 'Яркость'
+- 'Цветовая температура'
 - 'Подробное описание команд смотрите в файле конфигурации. Обзор завершён.'
 
 # Тестирование процедур

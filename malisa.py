@@ -168,6 +168,14 @@ WIKI_SENTENCES_COUNT = getattr(config.wiki, 'wiki_sentences_count', 5)
 
 # -----------------------------------------------------------------------------
 
+# Скорость чтения книг (текста большого объема)
+BOOKS_READING_SPEED = getattr(config.reading, 'books_reading_speed', 1.1)
+
+# Скорость чтения 
+WIKI_READING_SPEED = getattr(config.wiki, 'wiki_reading_speed', 1.2)
+
+# -----------------------------------------------------------------------------
+
 db_quotes = None
 quotes = []
 
@@ -239,6 +247,11 @@ de_voice_id = ''
 current_tts_lang = ''
 
 reco = sr.Recognizer()
+
+# Распознавание речи через интернет, посредством Google (используется по умолчанию)
+SR_REMOTE_VIA_GOOGLE = (getattr(config.engine, 'speech_recognition_remote_via_google', 1) == 1)
+
+# -----------------------------------------------------------------------------
 
 # Список слов для контроля цензуры (отдельный файл)
 from words import bad_words
@@ -371,6 +384,14 @@ def load_phrasal_verbs():
             encoding='utf-8') as f:
     phrasal_verbs = json.load(f)
   return phrasal_verbs
+  
+  
+def load_smart_devices():
+  """
+  Загрузка списка умных устройств из конфигурационного файла
+  """
+  global smart_devices
+  smart_devices = smart.load_smart_devices_info()
     
 
 def run_timer(seconds, name=None):
@@ -436,7 +457,7 @@ def play_clock_alarm():
   
   if os.path.isfile(file_alarm):
     run_os_command(
-      [config.app.external_player_app,
+      [config.app.mpv_app_path,
        '--quiet', '--really-quiet', '--no-video',
        file_alarm],
       sync=True, hide=True)
@@ -636,19 +657,9 @@ def print_voice_engines_info():
     init_tts()
 
   if tts:
-    if using_speechd_engine:
-      # Используем голосовой движок посредством SpeechDispatcher
-      voices = tts.list_synthesis_voices()
-      for index, voice in enumerate(voices):
-         (name, lang, dialect) = voice
-         print(f"{index}: '{name}' - '{lang}' - {dialect}")
-  
-    else:
-      # По умолчанию используем голосовой движок посредством PyTTSX3
-      voices = tts.getProperty('voices')
-      for index, voice in enumerate(voices):
-        print(f"{index}: '{voice.name}' - '{voice.id}' - {str(voice.languages)}")
-        
+    voices = get_system_voices()
+    for voice in voices:
+      print(f"{voice['index']}: '{voice['name']}' - '{voice['id']}' - '{voice['lang']}' - '{voice['dialect']}'")
     print()
 
       
@@ -697,6 +708,81 @@ def get_lang_and_country_code_by_tag(lang_tag):
   return code
   
 
+def get_system_voices():
+  """
+  Получение списка установленных голосов в системе
+  """
+  voice_list = []
+  
+  if tts:
+    if using_speechd_engine:
+      # Используем голосовой движок посредством SpeechDispatcher
+      voices = tts.list_synthesis_voices()
+      for index, voice in enumerate(voices):
+        (name, lang, dialect) = voice
+
+        voice_item = {}
+        voice_item['index'] = index
+        voice_item['name']  = name
+        voice_item['id']    = name ##
+        voice_item['lang']  = lang
+        voice_item['dialect'] = dialect
+        voice_item['languages'] = ''
+        voice_list.append(voice_item)
+    
+    else:
+      # По умолчанию используем голосовой движок посредством PyTTSX3
+      voices = tts.getProperty('voices')
+      for index, voice in enumerate(voices):
+
+        voice_item = {}
+        voice_item['index'] = index
+        voice_item['name']  = voice.name
+        voice_item['id']    = voice.id
+        voice_item['lang']  = ''
+        voice_item['dialect'] = ''
+        voice_item['languages'] = str(voice.languages)      
+        voice_list.append(voice_item)
+        
+  return voice_list
+  
+  
+def set_voice_language(lang):
+  """
+  Установка языка голосового движка
+  Параметры: lang = ('ru' | 'en' | 'de')
+  """
+  global current_tts_lang
+  
+  if lang and lang != current_tts_lang:
+    current_tts_lang = lang
+    
+    voice, rate = None, None
+
+    if lang == 'ru':
+      voice = ru_voice_id
+      rate = config.engine.speech_rate_ru
+    elif lang == 'en': 
+      voice = en_voice_id
+      rate = config.engine.speech_rate_en
+    elif lang == 'de': 
+      voice = de_voice_id
+      rate = config.engine.speech_rate_de
+      
+    if tts and voice and rate:
+    
+      if using_speechd_engine:
+        # Используем голосовой движок посредством SpeechDispatcher
+        tts.set_language(current_tts_lang)
+        tts.set_synthesis_voice(voice)
+        #todo
+        #tts.set_rate(rate)
+      else:
+        # По умолчанию используем голосовой движок посредством PyTTSX3
+        tts.setProperty('voice', voice)
+        tts.setProperty('rate', rate)
+
+        
 def init_tts():
   """
   Инициализация разговорного движка.
@@ -711,98 +797,76 @@ def init_tts():
   if tts:
     return tts
 
+  # Начальная инициализация
   if using_speechd_engine:
     # Используем голосовой движок посредством SpeechDispatcher
     tts = speechd.SSIPClient('malisa')
-    tts.set_output_module('rhvoice')
-    
-    current_tts_lang = 'ru'
-    
-    # todo:
-    tts.set_language(current_tts_lang)
-    tts.set_synthesis_voice(config.engine.speech_engine_ru_name)
-
-    #tts.set_rate(int(config.engine.speech_rate_ru))
+    tts.set_output_module('rhvoice')    
     tts.set_volume(int(config.engine.speech_volume) * 100)
-    
     tts.set_punctuation(speechd.PunctuationMode.SOME)
   
   else:
     # По умолчанию используем голосовой движок посредством PyTTSX3
     tts = pyttsx3.init()
-
-    rate = tts.getProperty('rate')
-    tts.setProperty('rate', config.engine.speech_rate_ru)
-
-    volume = tts.getProperty('volume')
     tts.setProperty('volume', config.engine.speech_volume)
     
-    voices = tts.getProperty('voices')
+  # Поиск голосов для озвучивания
+  voices = get_system_voices()
+  
+  for voice in voices:
+    voice_name = voice['name']
+    voice_id = voice['id']
     
-    for voice in voices:
-      #print(f'{voice.name} - {voice.id} - {voice.languages}')
-      
-      # Английский
-      if not en_voice_id:
-        if config.engine.speech_engine_en_name:
-          if voice.name == config.engine.speech_engine_en_name:
-            en_voice_id = voice.id
-        else:
-          if 'Microsoft Anna' in voice.name:
-            en_voice_id = voice.id
-      
-      # Русский
-      if not ru_voice_id:
-        if config.engine.speech_engine_ru_name:
-          if voice.name == config.engine.speech_engine_ru_name:
-            ru_voice_id = voice.id
-      
-      # Немецкий
-      if not de_voice_id:
-        if config.engine.speech_engine_de_name:
-          if voice.name == config.engine.speech_engine_de_name:
-            de_voice_id = voice.id
-
-    # По возможности, первоначально устанавливается русский язык произношения
-    # Если ничего не найдено - язык по умолчанию
-    if ru_voice_id:
-      tts.setProperty('voice', ru_voice_id)
-      tts.setProperty('rate', config.engine.speech_rate_ru)
-      current_tts_lang = 'ru'
+    # Английский
+    if not en_voice_id:
+      if config.engine.speech_engine_en_name:
+        if voice_name == config.engine.speech_engine_en_name:
+          en_voice_id = voice_id
+      else:
+        if 'Microsoft Anna' in voice_name:
+          en_voice_id = voice_id
     
-    elif en_voice_id:
-      tts.setProperty('voice', en_voice_id)
-      tts.setProperty('rate', config.engine.speech_rate_en)
-      current_tts_lang = 'en'
+    # Русский
+    if not ru_voice_id:
+      if config.engine.speech_engine_ru_name:
+        if voice_name == config.engine.speech_engine_ru_name:
+          ru_voice_id = voice_id
     
-    elif de_voice_id:
-      tts.setProperty('voice', de_voice_id)
-      tts.setProperty('rate', config.engine.speech_rate_de)
-      current_tts_lang = 'de'
+    # Немецкий
+    if not de_voice_id:
+      if config.engine.speech_engine_de_name:
+        if voice_name == config.engine.speech_engine_de_name:
+          de_voice_id = voice_id
+          
+  # По возможности, первоначально устанавливается русский язык произношения
+  # Если ничего не найдено - язык по умолчанию
+  if ru_voice_id:
+    set_voice_language(lang='ru')
     
-    else:
-      tts.setProperty('voice', 'default')
-      tts.setProperty('rate', config.engine.speech_rate_en)
-      current_tts_lang = 'en'
+  elif en_voice_id:
+    set_voice_language(lang='en')  
+  
+  elif de_voice_id:
+    set_voice_language(lang='de')
+  
+  else:
+    en_voice_id = 'default'
+    set_voice_language(lang='en')
     
   return tts
 
 
-def say(text, lang='ru'):
+def say(text, lang='ru', speed=1.0):
   """
   Произнести фразу.
   По умолчанию - на русском языке. При необходимости - возможно сменить язык.
   """  
-  global current_tts_lang
-  
   if tts:
+    # Установка языка голосового движка
+    set_voice_language(lang=lang)
   
     if using_speechd_engine:
-      # Используем голосовой движок посредством SpeechDispatcher
-      # todo
-      if lang != current_tts_lang:
-        current_tts_lang = lang
-
+      # Используем голосовой движок посредством SpeechDispatcher      
       # Обеспечиваем синхронное выполнение озвучивания текста
       is_speaking = True
       
@@ -821,32 +885,19 @@ def say(text, lang='ru'):
     
     else:
       # По умолчанию используем голосовой движок посредством PyTTSX3
-      if lang != current_tts_lang:
-        current_tts_lang = lang
-        
-        if lang == 'ru': 
-          tts.setProperty('voice', ru_voice_id)
-          tts.setProperty('rate', config.engine.speech_rate_ru)
-        elif lang == 'en': 
-          tts.setProperty('voice', en_voice_id)
-          tts.setProperty('rate', config.engine.speech_rate_en)
-        elif lang == 'de': 
-          tts.setProperty('voice', de_voice_id)
-          tts.setProperty('rate', config.engine.speech_rate_de)
-        
       tts.say(text)
       tts.runAndWait()
-    
-    
+
+
 def is_external_player_exists():
   """
   Проверка доступности внешнего приложения для проигрывания файлов
   """
-  result = run_os_command([config.app.external_player_app, '--help', '--really-quiet'], sync=True, hide=True)
+  result = run_os_command([config.app.mpv_app_path, '--help', '--really-quiet'], sync=True, hide=True)
   return result
   
 
-def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True):
+def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True, speed=1.0):
   """
   Озвучить текст другим способом, через внешние сервисы/программы.
   Добавлена возможность работать в `тихом` (скрытом) режиме.
@@ -871,8 +922,8 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True):
   
   if tts_result:
     result = run_os_command(
-      [config.app.external_player_app,
-       '--quiet', '--really-quiet', '--no-video',
+      [config.app.mpv_app_path,
+       '--quiet', '--really-quiet', '--no-video', f'--speed={speed}',
        file_mp3],
       sync=True,
       hide=hide_external)
@@ -898,17 +949,13 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
     Прослушивании и распознавание речи
     (основная процедура, один шаг цикла)
     По умолчанию - на русском языке. При необходимости - возможно сменить язык.
-    """
-    
+    """    
     text = ''
-    #reco = sr.Recognizer()
     
-    #print('Проверка микрофона...')
     with sr.Microphone(device_index = config.mic.microphone_index) as source:
       # Очистка экрана
       if clear_screen: print(ansi.clear_screen())
       
-      #print('Настройка...')
       # Настройка обработки посторонних шумов
       reco.adjust_for_ambient_noise(source, duration = ambient_duration)
       
@@ -968,8 +1015,11 @@ def check_stop(listen_timeout=3, clear_screen=True, silently=True):
   if is_stop_word(text):
     say('Окей')
     return True
-  else:
-    return False
+    
+  # Контроль возможной постановки на паузу и перехода в режим распознавания основных команд
+  check_for_pause_and_make_shell(text) ##
+    
+  return False
   
 
 def is_action_valid(action_name, reaction_type=None):
@@ -1808,11 +1858,12 @@ def set_system_volume(value):
   """
   Установка громкости звука ОС
   """
-  set_vol_app = config.app.set_volume_app  
+  set_vol_app = config.app.set_volume_app
   if not set_vol_app:
     return
 
-  if os.name == 'nt' or (os.name == 'posix' and not set_vol_app.lower().endswith('.exe')):
+  if os.name == 'nt' \
+     or (os.name == 'posix' and not set_vol_app.lower().endswith('.exe')):
     run_os_command([set_vol_app, f'{value}'], sync=True)
   
 
@@ -2470,9 +2521,9 @@ def read_text_by_chunks(text, from_chunk=0, use_external_engine=True, lang='ru')
       goal_text += SENTENCE_DELIMITER
       
       if use_external_engine:
-        say_by_external_engine(goal_text, lang=lang)
+        say_by_external_engine(goal_text, lang=lang, speed=BOOKS_READING_SPEED)
       else:
-        say(goal_text, lang=lang)
+        say(goal_text, lang=lang, speed=BOOKS_READING_SPEED)
           
       # !ВНИМАНИЕ: используемый внешний проигрыватель 
       # уже позволяет поставить воспроизведение на паузу, командой с клавиатуры!
@@ -2480,13 +2531,16 @@ def read_text_by_chunks(text, from_chunk=0, use_external_engine=True, lang='ru')
       # Контроль голосовых команд в процессе озвучивания книги
       control_text = listen_and_recognize(listen_timeout=1, clear_screen=False).lower()
 
-      # Прерывание озвучивания, голосовой командой
+      # Возможное прерывание озвучивания, голосовой командой
       if is_stop_word(control_text):
         say('Окей')
         is_exit = True
         break # Стоп
+        
+      # Контроль возможной постановки на паузу и перехода в режим распознавания основных команд
+      check_for_pause_and_make_shell(control_text) ##
       
-      # Конроль перехода вперёд/назад на заданное количество блоков
+      # Контроль перехода вперёд/назад на заданное количество блоков
       jump_blocks = check_for_jump(control_text)
       if jump_blocks != 0:
         tail = ''
@@ -2498,7 +2552,8 @@ def read_text_by_chunks(text, from_chunk=0, use_external_engine=True, lang='ru')
     if i < 0: i = 0
 
   if is_exit:
-    info = f'Вы остановились на блоке номер "{chunk_count}"'
+    real_chunk_count = int(i / READ_CHUNK_SIZE)
+    info = f'Вы остановились на блоке номер "{real_chunk_count}"'
     print(info)
     say(info)
     
@@ -2531,7 +2586,28 @@ def check_for_jump(text):
     jump_blocks = sign * blocks
     
   return jump_blocks
-        
+
+
+def check_for_pause_and_make_shell(text):
+  """
+  Контроль возможной постановки на паузу и перехода в режим распознавания основных команд.
+  Очень полезная процедура.
+  """
+  if 'пауза' in text:
+    say('Пауза')
+    
+    while True:
+      text = listen_and_recognize()
+      text_lower = text.lower()
+      
+      if 'дальше' in text_lower \
+         or 'продолжаем' in text_lower \
+         or 'продолжить' in text_lower:
+        say('Продолжаем...')
+        break;
+      else:
+        make_reaction(text)
+
 
 def read_local_book(file='', prefer_name='', encoding='utf-8', from_chunk=0, use_external_engine=True, lang='ru'):
   """
@@ -2933,7 +3009,7 @@ def wiki_search(text, lang='ru'):
   try:
     wiki.set_lang(lang)
     result_text = wiki.summary(text, sentences = WIKI_SENTENCES_COUNT)
-    result_text = result_text.replace('\n', '')
+    result_text = result_text.replace('\n', ' ').replace('==', '.')
   except:
     result_text = None
 
@@ -2953,7 +3029,7 @@ def act_wiki_search(**kwargs):
   text = kwargs.get('text', '')
   if not text: return
   
-  use_external_engine = True
+  use_external_engine = getattr(config.wiki, 'wiki_use_external_speech_engine', True)
   
   show_caption('Поиск в Википедии')
 
@@ -2980,11 +3056,13 @@ def act_wiki_search(**kwargs):
     if result_text:    
       print(f'\n {result_text}\n')
 
+      # Чтение
+      # todo: возможно, задействовать механизм чтения книг `read_text_by_chunks`
       if use_external_engine:
         say('Ожидайте.')
-        say_by_external_engine(result_text, lang=lang)
+        say_by_external_engine(result_text, lang=lang, speed=WIKI_READING_SPEED)
       else:
-        say(result_text, lang=lang)
+        say(result_text, lang=lang, speed=WIKI_READING_SPEED)
       
       say('Готово.')
     else:
@@ -2993,7 +3071,253 @@ def act_wiki_search(**kwargs):
   else:
     say('Не определён текст для поиска.')
   
+
+def check_smart_bulbs():
+  """
+  Проверка наличия загруженной информации об умных лампах и устройствах освещения
+  """
+  if not smart_devices or not smart_devices['bulbs']:
+    info = 'Устройства не найдены.'
+    print(info)
+    say(info)
+    return False
+
+  if not smart_devices['default_bulb']:
+    info = 'Отсутствует лампа по умолчанию.'
+    print(info)
+    say(info)
+    return False
+
+  return True
   
+  
+def act_light_on(**kwargs):
+  """
+  Включение света
+  
+  В текущей версии релизована поддержка только основной лампы (см. файл конфигурации `config/smart_devices.yaml`)
+  """  
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+
+  show_caption('Свет')
+  result = smart.light_on(bulb_info = smart_devices['default_bulb'])
+  
+  if result:
+    say('Сделано.')
+  else:
+    say('Ошибка.')
+  
+  
+def act_light_off(**kwargs):
+  """
+  Выключение света
+  
+  В текущей версии релизована поддержка только основной лампы (см. файл конфигурации `config/smart_devices.yaml`)
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Выключаю')
+  result = smart.light_off(bulb_info = smart_devices['default_bulb'])
+  
+  if result:
+    say('Сделано.')
+  else:
+    say('Ошибка.')
+    
+    
+def act_light_normal(**kwargs):
+  """
+  Обычный свет (базовые параметры)
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Свет')
+  result = smart.light_normal(bulb_info = smart_devices['default_bulb'])
+  
+  if result:
+    say('Сделано.')
+  else:
+    say('Ошибка.')
+
+
+def act_light_alarm(**kwargs):
+  """
+  Тревога! (индикация светом)
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Тревога')
+  result = smart.light_alarm(bulb_info = smart_devices['default_bulb'])
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_red(**kwargs):
+  """
+  Красный свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Красный')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'red')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_green(**kwargs):
+  """
+  Зелёный свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Зелёный')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'green')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_blue(**kwargs):
+  """
+  Синий свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Синий')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'blue')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_yellow(**kwargs):
+  """
+  Жёлтый свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Жёлтый')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'yellow')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_orange(**kwargs):
+  """
+  Оранжевый свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Оранжевый')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'orange')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_bluelight(**kwargs):
+  """
+  Голубой свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Голубой')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'bluelight')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_purple(**kwargs):
+  """
+  Фиолетовый свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Фиолетовый')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'purple')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_pink(**kwargs):
+  """
+  Розовый свет
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  show_caption('Розовый')
+  result = smart.light_color(bulb_info = smart_devices['default_bulb'], color = 'pink')
+  
+  if not result:
+    say('Ошибка.')
+  
+  
+def act_light_brightness(**kwargs):
+  """
+  Установка яркости на заданное количество процентов (10-100)
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  bright = None
+  
+  # Определим значение яркости
+  try:
+    bright = int(re.findall(r'^\D+(\d+)\D*$', text)[0])
+  except:
+    info = 'Ошибка. Значение яркости не определено.'
+    print(info)
+    say(info)
+  
+  if bright:
+    show_caption('Смена яркости')
+    result = smart.light_brightness(bulb_info = smart_devices['default_bulb'], brightness = bright)
+    
+    if not result:
+      say('Ошибка.')
+  
+  
+def act_light_color_temperature(**kwargs):
+  """
+  Установка цветовой температуры на указанную величину (1500-7700)
+  """
+  if not check_smart_bulbs(): return
+  text = kwargs.get('text', '')
+  
+  color_temp = None
+  
+  # Определим значение яркости
+  try:
+    color_temp = int(re.findall(r'^\D+(\d+)\D*$', text)[0])
+  except:
+    info = 'Ошибка. Значение температуры не определено.'
+    print(info)
+    say(info)
+  
+  if color_temp:
+    show_caption('Смена температуры')
+    result = smart.light_color_temperature(bulb_info = smart_devices['default_bulb'], color_temperature = color_temp)
+    
+    if not result:
+      say('Ошибка.')
+
 ## @@
 ## -- end ACTIONS (действия) ------------------------------------------------------------------ ##
 
@@ -3046,6 +3370,8 @@ def init(config_file=None):
   load_irr_verbs()  
   load_phrasal_verbs()
   
+  load_smart_devices()
+  
   print(ansi.clear_screen())
   
   # Корректировка громкости звука
@@ -3069,7 +3395,7 @@ def run(config_file=None):
   #sys.exit(0)
   #end DEBUG
   
-  while True:    
+  while True:
     text = listen_and_recognize()
     if text: make_reaction(text)
 

@@ -5,7 +5,6 @@ from pprint import pprint
 
 import utils
 
-#import config.config as conf
 config = utils.load_config()
 
 

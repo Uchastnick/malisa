@@ -25,3 +25,5 @@ move %DIST_DIR%\%BASENAME%\script\%BASENAME%_local.bat %DIST_DIR%\%BASENAME%\%BA
 del "%ARCHIVE_FILE%"
 
 7z a -tzip -r0 %ARCHIVE_FILE% %DIST_DIR%\%BASENAME%
+
+echo Ok

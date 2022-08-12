@@ -6,7 +6,7 @@ set BASENAME=malisa
 set RELEASE_DIR=_release
 
 set PYTHON_VER=cp37
-set OS_VER=win7_amd64
+set OS_VER=win_amd64
 
 set BUILD_DIR=./%RELEASE_DIR%/build
 set DIST_DIR=./%RELEASE_DIR%/dist

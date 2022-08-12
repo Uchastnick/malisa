@@ -61,7 +61,7 @@ if os.name == 'posix' and config.engine.use_speech_dispatcher_in_linux == 1:
     # Голосовой движок для систем Linux
     import speechd
     using_speechd_engine = True
-  except ImportError:
+  except ImportError as e:
     using_speechd_engine = False
     print(e)
     print(f'\nНе удалось загрузить модуль Speech Dispatcher!\n\a')

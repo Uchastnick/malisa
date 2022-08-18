@@ -940,8 +940,10 @@ action_need_parameter_text: 1
 # (вспомогательная процедура)
 ---
 key_phrase_exact:
-- 'Список команд'
-- 'Список доступных команд'
+- 'список команд'
+- 'список доступных команд'
+- 'что ты умеешь'
+- 'что ты можешь'
 key_phrase_partial:
 result_type: 'speech'
 result_speech:

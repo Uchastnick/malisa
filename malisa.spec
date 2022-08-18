@@ -29,10 +29,13 @@ data_files = [
   ('sound/*.mp3', 'sound'),
   ('stand_up/whattodo.txt', 'stand_up'),
   ('tmp/README.md', 'tmp'),
+  ('tools/README.md', 'tools'),
 
   ('malisa.bat', '.'),
 
   ('VERSION', '.'),
+  ('LICENSE', '.'),
+
   ('README.md', '.'),
   ('README.ru.md', '.'),  
   ('INSTALL.md', '.'),

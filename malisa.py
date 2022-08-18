@@ -71,6 +71,10 @@ if os.name == 'nt' or not using_speechd_engine:
   import pyttsx3
 
 from gtts import gTTS
+
+# Временный mp3-файл для работы с внешним источником генерации речи
+TMP_MP3_FILE = os.path.join(home_dir, 'tmp', 'gTTS.mp3')
+
 import speech_recognition as sr
 
 import sqlite3
@@ -333,6 +337,8 @@ def close_all():
   
   if tts:
     if using_speechd_engine: tts.close()
+  
+  if os.path.exists(TMP_MP3_FILE): os.remove(TMP_MP3_FILE)
   
   close_databases()
   
@@ -642,8 +648,14 @@ def print_microphones_info():
   """
   print('\n-- Список устройств в системе: --\n')  
   
-  microphones = sr.Microphone.list_microphone_names()    
+  microphones = sr.Microphone.list_microphone_names()
   for index, name in enumerate(microphones):
+      if os.name == 'nt':
+        try:
+          name = name.encode('cp1251').decode('utf-8')
+        except:
+          pass
+
       print(f"Microphone с именем '{name}' найден для 'Microphone [device_index = {index}]'")
 
 
@@ -660,7 +672,8 @@ def print_voice_engines_info():
     voices = get_system_voices()
     for voice in voices:
       print(f"{voice['index']}: '{voice['name']}' - '{voice['id']}' - '{voice['lang']}' - '{voice['dialect']}'")
-    print()
+    print()    
+    if using_speechd_engine: tts.close()
 
       
 def get_lang_tag(lang_name):
@@ -908,11 +921,9 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True, spee
     print(info)
     say(info)
   
-  file_mp3 = os.path.join(home_dir, 'tmp', 'gTTS.mp3')
-  
   try:
     external_tts = gTTS(text, lang=lang)
-    external_tts.save(file_mp3)
+    external_tts.save(TMP_MP3_FILE)
     tts_result = True
     
   except Exception as e:
@@ -924,7 +935,7 @@ def say_by_external_engine(text, lang='ru', quiet=True, hide_external=True, spee
     result = run_os_command(
       [config.app.mpv_app_path,
        '--quiet', '--really-quiet', '--no-video', f'--speed={speed}',
-       file_mp3],
+       TMP_MP3_FILE],
       sync=True,
       hide=hide_external)
   else:
@@ -983,8 +994,10 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
         result = reco.recognize_google(audio, language = reco_language)
         text = result
         #print(f'Вы сказали: {text}')
-      except:
-        if clear_screen: print('Ошибка распознавания!')
+      except Exception as e:
+        if clear_screen:
+          print(e)
+          print('Ошибка распознавания!')
         text = ''
     
     act_checking_time_to_sleep() ##!!
@@ -2453,7 +2466,8 @@ def load_fb2_file(file_path):
       ): continue
       
       if el.text:
-        text += (el.text.replace('—', '-').strip() + ' ')
+        el_text = el.text.replace('—', '-').replace('***', '') #.replace('…', '.') #.replace(' ', ' ')
+        text += (el_text.strip() + ' ')
 
   return text
   

@@ -6,14 +6,16 @@ VENV_SCRIPTS_DIR_FULL_PATH="${SCRIPT_DIR}/.venv/bin/"
 BASENAME=malisa
 RELEASE_DIR=_release
 
+VERSION=`head -q -n 1 ./VERSION`
+
 PYTHON_VER=cp310
-OS_VER=x86_64-linux
+OS_VER=linux-x86_64
 
 BUILD_DIR=./${RELEASE_DIR}/build
 DIST_DIR=./${RELEASE_DIR}/dist
 LIB_DIR=${DIST_DIR}/${BASENAME}/lib-dynload
 
-ARCHIVE_FILE=${DIST_DIR}/${BASENAME}-${PYTHON_VER}-${OS_VER}.zip
+ARCHIVE_FILE=${DIST_DIR}/${BASENAME}${VERSION}-${PYTHON_VER}-${OS_VER}.zip
 
 ${VENV_SCRIPTS_DIR_FULL_PATH}pyinstaller -y --clean --distpath "${DIST_DIR}" --workpath "${BUILD_DIR}" ${BASENAME}.spec
 mkdir "${LIB_DIR}"

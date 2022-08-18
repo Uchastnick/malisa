@@ -28,6 +28,8 @@ stand_up/*
 
 tmp/*
 
+tools/*
+
 !.gitkeep
 !README.md
 

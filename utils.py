@@ -10,6 +10,7 @@ __all__ = [
   'check_any_exact_match',
   'check_any_partial_match',
   'extract_value_from_text',
+  'remove_bom_from_file',
   'load_config',
   'play_sound',
   'beep_sound'
@@ -19,6 +20,7 @@ import os
 import time
 import subprocess
 
+import codecs
 import chardet
 from chardet.universaldetector import UniversalDetector
 
@@ -147,6 +149,29 @@ def extract_value_from_text(text, keyword, default_value=''):
   return (new_text, value)
 
 
+def remove_bom_from_file(file_path):
+  """
+  Удалить BOM-маркер (при наличии такового) из файла.
+  Перезапись файла происходит "на лету".
+  """
+  buffer_size = 4096
+  bom_length = len(codecs.BOM_UTF8)
+
+  with open(file_path, "r+b") as fp:
+    chunk = fp.read(buffer_size)
+    if chunk.startswith(codecs.BOM_UTF8):
+      i = 0
+      chunk = chunk[bom_length:]
+      while chunk:
+        fp.seek(i)
+        fp.write(chunk)
+        i += len(chunk)
+        fp.seek(bom_length, os.SEEK_CUR)
+        chunk = fp.read(buffer_size)
+      fp.seek(-bom_length, os.SEEK_CUR)
+      fp.truncate()
+
+
 def load_config(config_file='config.ini'):
   """
   Загрузить параметры из файла конфигурации.
@@ -157,6 +182,7 @@ def load_config(config_file='config.ini'):
   config_file_path = os.path.join(home_dir, 'config', config_file)
   
   try:
+    remove_bom_from_file(config_file_path)
     config = load_config_to_object(config_file_path)
     #config = load_config_to_object(config_file_path, encoding='utf-8')
   

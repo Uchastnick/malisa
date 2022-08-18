@@ -10,7 +10,7 @@ ROBOT_NAME = 'Алиса'
 [mic]
 
 ; индекс основного микрофона в системе
-MICROPHONE_INDEX = 2
+MICROPHONE_INDEX = 1
 
 ; Параметр для настройки обработки речи (1, 0.5, ...)
 AMBIENT_DURATION = 1
@@ -35,7 +35,7 @@ SPEECH_ENGINE_DE_NAME = ''
 SPEECH_VOLUME = 0.4
 
 ; Скорость речи робота
-SPEECH_RATE_RU = 185 ; 145
+SPEECH_RATE_RU = 165 ; 145
 SPEECH_RATE_EN = 100
 SPEECH_RATE_DE = 100
 
@@ -183,8 +183,10 @@ AIMP_PATH = 'C:\\Program Files (x86)\\AIMP\\AIMP.exe'
 ; Можно оставить пустым
 SET_VOLUME_APP = '' ; 'setvol.exe'
 
+; В текущей версии данный параметр не используется
 EXTERNAL_PLAYER_APP = 'mpv'
 
+; Путь к плееру MPV
 MPV_APP_PATH = 'mpv'
 
 [web]
@@ -246,7 +248,7 @@ METRONOME_BEATS_COUNT_BEFORE_EXIT = 24
 ; Максимальное количество предложений, возвращаемых при поиске в Википедии
 WIKI_SENTENCES_COUNT = 5
 
-; Использовать внешний голосовой движок (боле разборчивый) для чтения текстов Википедии (True | False)
+; Использовать внешний голосовой движок (более разборчивый) для чтения текстов Википедии (True | False)
 ; Иначе - использовать внутренний голосовй движок
 WIKI_USE_EXTERNAL_SPEECH_ENGINE = True
 

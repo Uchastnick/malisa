@@ -1,5 +1,6 @@
-﻿- Human friendly installer
+﻿- Migration to Linux-like systems
+- SmartHome functionality (basics)
+- Human-friendly installer
+- Speech recognition on local host
 - Internationalization
-- Migration to Linux-like systems
-- SmartHome functionality
-- Conversion to OOP-like style
+- Conversion code to OOP-like style

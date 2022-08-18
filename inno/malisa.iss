@@ -1,6 +1,6 @@
 ﻿#include <idp.iss>
 ; #include <idplang\russian.iss> 
-//#include "environment.iss"
+; #include "environment.iss"
 
 #include "utils.iss"
 #include "optionsPage.iss"
@@ -10,11 +10,20 @@
 #define MyAppExeName "malisa.exe"
 #define DefaultDirName "c:\malisa"
 
-#define MyAppVersion "2.3.2.beta"
-#define PythonVersion "cp37"
+#ifndef MyAppVersion
+  #define MyAppVersion "2.3.2-beta"
+#endif
 
-#define MalisaServerLink "https://github.com/Uchastnick/malisa/releases/download/release"
-#define MalisaArchive StringChange(StringChange("malisa-%MyAppVersion%-%PythonVersion%-win-amd64.zip", "%MyAppVersion%", MyAppVersion), "%PythonVersion%", PythonVersion)
+#ifndef PythonVersion
+  #define PythonVersion "cp37"
+#endif
+
+#ifndef WinVersion
+  #define WinVersion "win-amd64"
+#endif
+
+#define MalisaServerLink StringChange("https://github.com/Uchastnick/malisa/releases/download/v%MyAppVersion%", "%MyAppVersion%", MyAppVersion)
+#define MalisaArchive StringChange(StringChange(StringChange("malisa-%MyAppVersion%-%PythonVersion%-%WinVersion%.zip", "%MyAppVersion%", MyAppVersion), "%PythonVersion%", PythonVersion), "%WinVersion%", WinVersion)
 
 #define RHVoiceServerLink "https://rhvoice.eu-central-1.linodeobjects.com"
 #define VoiceFileArina "RHVoice-voice-Russian-Arina-v4.0.2009.14-setup"
@@ -39,7 +48,7 @@ LicenseFile=LICENSE
 InfoBeforeFile=README.ru.md
 InfoAfterFile=POSTINSTAL_INFO.ru.md
 OutputDir=_release
-OutputBaseFilename=malisa-{#MyAppVersion}-win-setup
+OutputBaseFilename=malisa-{#MyAppVersion}-{#PythonVersion}-win-setup
 Compression=lzma
 SolidCompression=yes
 DisableStartupPrompt=False
@@ -74,6 +83,8 @@ Name: "custom"; Description: "Выборочная установка"; Flags: i
 [Components]
 Name: "main"; Description: "Ядро голосового помощника"; Types: full compact custom; Flags: fixed
 Name: "arinavoice"; Description: "Голос 'Арина' от RHVoice"; Types: full compact custom; Flags: fixed
+//Name: "main"; Description: "Ядро голосового помощника"; Types: full compact custom;
+//Name: "arinavoice"; Description: "Голос 'Арина' от RHVoice"; Types: full compact custom;
 Name: "irinavoice"; Description: "Голос 'Ирина' от RHVoice"; Types: full
 Name: "mpvplayer"; Description: "Локальная установка плеера MPV"; Types: full
 Name: "aimp3player"; Description: "Установка плеера AIMP3"; Types: full
@@ -120,8 +131,11 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then 
   begin    
-    UnZip(ExpandConstant('{tmp}\{#MalisaArchive}'), ExpandConstant('{tmp}'));
-    if WizardIsComponentSelected('arinavoice') then UnZip(ExpandConstant('{tmp}\malisa\_distr\{#VoiceFileArina}.zip'), ExpandConstant('{tmp}'));
+    if WizardIsComponentSelected('main') then
+    begin
+      UnZip(ExpandConstant('{tmp}\{#MalisaArchive}'), ExpandConstant('{tmp}'));
+      if WizardIsComponentSelected('arinavoice') then UnZip(ExpandConstant('{tmp}\malisa\_distr\{#VoiceFileArina}.zip'), ExpandConstant('{tmp}'));
+    end;
   end;
 
   if CurStep = ssPostInstall then
@@ -168,7 +182,7 @@ begin
 end;
 
 procedure InitializeWizard();
-begin
+begin    
   idpAddFileComp(ExpandConstant('{#MalisaServerLink}/{#MalisaArchive}'), ExpandConstant('{tmp}\{#MalisaArchive}'), 'main');
   idpAddFileComp(ExpandConstant('{#RHVoiceServerLink}/{#VoiceFileIrina}.exe'), ExpandConstant('{tmp}\{#VoiceFileIrina}.exe'), 'irinavoice');
   idpAddFileComp(ExpandConstant('{#MPVLink}'), ExpandConstant('{tmp}\mpv.7z'), 'mpvplayer');

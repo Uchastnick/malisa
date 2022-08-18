@@ -15,7 +15,7 @@ set BUILD_DIR=.\%RELEASE_DIR%\build
 set DIST_DIR=.\%RELEASE_DIR%\dist
 set LIB_DIR=%DIST_DIR%\%BASENAME%\lib-dynload
 
-set ARCHIVE_FILE=%DIST_DIR%\%BASENAME%%VERSION%-%PYTHON_VER%-%OS_VER%.zip
+set ARCHIVE_FILE=.\%RELEASE_DIR%\%BASENAME%%VERSION%-%PYTHON_VER%-%OS_VER%.zip
 
 %VENV_SCRIPTS_DIR_FULL_PATH%pyinstaller -y --clean --distpath "%DIST_DIR%" --workpath "%BUILD_DIR%" %BASENAME%.spec
 mkdir "%LIB_DIR%"
@@ -29,4 +29,6 @@ del "%ARCHIVE_FILE%"
 
 7z a -tzip -r0 %ARCHIVE_FILE% %DIST_DIR%\%BASENAME%
 
-echo Ok
+call %SCRIPT_DIR%\build_inno.bat
+
+echo Build - Ok

@@ -39,3 +39,5 @@ tools/*
 _release
 build
 dist
+
+vosk-model-*

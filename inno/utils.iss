@@ -43,19 +43,19 @@ var
   ResultCode: Integer;
 begin
   Exec('cmd.exe', 
-       ExpandConstant('/c "{app}\malisa.exe --microphones >""{tmp}\microphones.txt"""'), 
+       ExpandConstant('/c "{app}\malisa.exe --microphones >""{tmp}\microphones.txt.1251"""'), 
        ExpandConstant('{app}'),
        SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
   Exec(ExpandConstant('{tmp}\sed.exe'), 
-       ExpandConstant('-i -r -n -e "s/Microphone с именем //; s/\]''//; s/ найден для ''Microphone \[device_index = /, /; s/(.+), (.+)/\2 - \1/p;" "{tmp}\microphones.txt"'),
+       ExpandConstant('-i -r -n -e "s/([^'']+)''([^'']+)''(.*)/\1:\2/; s/: :/ - /p;" "{tmp}\microphones.txt.1251"'),
        '',
        SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  Exec('cmd.exe',
-       ExpandConstant('/c "{tmp}\iconv.exe -f UTF-8 -t CP1251 ""{tmp}\microphones.txt"" >""{tmp}\microphones.txt.1251"""'),
-       '',
-       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+//   Exec('cmd.exe',
+//        ExpandConstant('/c "{tmp}\iconv.exe -f UTF-8 -t CP1251 ""{tmp}\microphones.txt"" >""{tmp}\microphones.txt.1251"""'),
+//        '',
+//        SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 procedure GetVoicesInfo();
@@ -63,19 +63,19 @@ var
   ResultCode: Integer;
 begin
   Exec('cmd.exe', 
-       ExpandConstant('/c "{app}\malisa.exe --voices >""{tmp}\voices.txt"""'),
+       ExpandConstant('/c "{app}\malisa.exe --voices >""{tmp}\voices.txt.1251"""'),
        ExpandConstant('{app}'),
        SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
+        
   Exec(ExpandConstant('{tmp}\sed.exe'),
-       ExpandConstant('sed -i -r -n -e "s/([^'']+)''([^'']+)''(.+)/\2/p;" "{tmp}\voices.txt"'),
+       ExpandConstant('-i -r -n -e "s/([^'']+)''([^'']+)''(.*)/\2/p;" "{tmp}\voices.txt.1251"'),
        '',
        SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  Exec('cmd.exe',
-       ExpandConstant('/c "{tmp}\iconv.exe -f UTF-8 -t CP1251 ""{tmp}\voices.txt"" >""{tmp}\voices.txt.1251"""'),
-       '',
-       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+//   Exec('cmd.exe',
+//        ExpandConstant('/c "{tmp}\iconv.exe -f UTF-8 -t CP1251 ""{tmp}\voices.txt"" >""{tmp}\voices.txt.1251"""'),
+//        '',
+//        SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 procedure ConfigTo1251();

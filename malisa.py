@@ -26,6 +26,20 @@ try:
 except Exception as e:
   print(e)
   raise SystemExit(f'Обнаружена проблема в файле конфигурации "./config/{config_name}"!\n\a')
+  
+# Режим отладки и вывода служебных сообщений
+DEBUG = (getattr(config.other, 'debug', 0) == 1)
+
+# -----------------------------------------------------------------------------
+
+# Имя робота
+ROBOT_NAME = config.main.robot_name
+
+ROBOT_NAME_LOWER = ROBOT_NAME.lower()
+ROBOT_NAME_LENGTH = len(ROBOT_NAME_LOWER)
+
+# Звуковой сигнал по готовности
+BEEP_WHEN_READY = getattr(config.main, 'beep_when_ready', 0)
 
 # -----------------------------------------------------------------------------
 
@@ -93,11 +107,14 @@ from pyperclip import copy as copyclip, paste as pasteclip
 try:
   import pyautogui
   pyautogui.PAUSE = 2
-  screen_size = pyautogui.size()  
+  screen_size = pyautogui.size()
 except:
   screen_size = [0, 0]
   
 x_center, y_center = round(screen_size[0]/2), round(screen_size[1]/2)
+
+# Использование мыши для левши
+USING_LEFT_HANDED_MOUSE = (getattr(config.autoit, 'using_left_handed_mouse', 0) == 1)
 
 from utils import (
   sleep, 
@@ -114,7 +131,12 @@ from utils import (
 import yaml
 from inputimeout import inputimeout, TimeoutOccurred
 
-import webbrowser as web
+try:
+  import webbrowser as web
+  is_webbrowser = True
+except Exception as e:
+  is_webbrowser = False
+
 import re
 
 import fitz
@@ -230,27 +252,42 @@ SENTENCE_DELIMITER = getattr(config.reading, 'sentence_delimiter', '. ')
   
 # -----------------------------------------------------------------------------
 
-# Инициализация web-поиска
-if config.web.web_browser_app:
-  web.register('web_browser', None, web.BackgroundBrowser(config.web.web_browser_app))
-  web_browser = web.get('web_browser')
-else:
-  web_browser = web.get(None)
+# Браузер для поиска в web
+web_browser = None
 
 # -----------------------------------------------------------------------------
 
 # Google-переводчик
-translator = Translator()
+translator = None
+
+# -----------------------------------------------------------------------------
+
+# Распознавание речи оффлайн (на локальном хосте)
+
+# Локальное распознавание ключевых фраз
+# Даже если основное распознавание происходит через интернет, предварительно будет локально проверяться - адресована ли фраза роботу
+SR_LOCAL_FOR_KEYPHRASE = (getattr(config.engine, 'speech_recognition_local_for_keyphrase', 0) == 1)
+
+# Использование Vosk Engine для локального распознавания
+SR_LOCAL_VIA_VOSK = (getattr(config.engine, 'speech_recognition_local_via_vosk', 0) == 1)
+
+vosk_reco_ru = None
+vosk_reco_en = None
+vosk_reco_de = None
+
+VOSK_FRAME_RATE = 16000
+
+if SR_LOCAL_VIA_VOSK or SR_LOCAL_FOR_KEYPHRASE:
+  import vosk
 
 # -----------------------------------------------------------------------------
 
 tts = None
+reco = None
 ru_voice_id = ''
 en_voice_id = ''
 de_voice_id = ''
 current_tts_lang = ''
-
-reco = sr.Recognizer()
 
 # Распознавание речи через интернет, посредством Google (используется по умолчанию)
 SR_REMOTE_VIA_GOOGLE = (getattr(config.engine, 'speech_recognition_remote_via_google', 1) == 1)
@@ -646,17 +683,19 @@ def print_microphones_info():
   """
   Вывести список доступных микрофонов в системе
   """
+  microphones = sr.Microphone.list_microphone_names()
+
+  print(ansi.clear_screen())
   print('\n-- Список устройств в системе: --\n')  
   
-  microphones = sr.Microphone.list_microphone_names()
   for index, name in enumerate(microphones):
       if os.name == 'nt':
         try:
           name = name.encode('cp1251').decode('utf-8')
         except:
           pass
-
-      print(f"Microphone с именем '{name}' найден для 'Microphone [device_index = {index}]'")
+      print(f"{index}: '{name}'")
+  print()
 
 
 def print_voice_engines_info():
@@ -671,8 +710,8 @@ def print_voice_engines_info():
   if tts:
     voices = get_system_voices()
     for voice in voices:
-      print(f"{voice['index']}: '{voice['name']}' - '{voice['id']}' - '{voice['lang']}' - '{voice['dialect']}'")
-    print()    
+      print(f"{voice['index']}: '{voice['name']}', '{voice['id']}', '{voice['lang']}', '{voice['dialect']}'")
+    print()
     if using_speechd_engine: tts.close()
 
       
@@ -795,7 +834,7 @@ def set_voice_language(lang):
         tts.setProperty('voice', voice)
         tts.setProperty('rate', rate)
 
-        
+  
 def init_tts():
   """
   Инициализация разговорного движка.
@@ -867,6 +906,98 @@ def init_tts():
     set_voice_language(lang='en')
     
   return tts
+
+
+def init_speech_recognizer():
+  """
+  Инициализация движка распознавания речи по умолчанию
+  """
+  global reco
+
+  if reco:
+    return reco
+  
+  reco = sr.Recognizer()
+  return reco
+  
+
+def init_vosk_engine():
+  """
+  Инициализация движка локального распознавания речи - Vosk Engine
+  """
+  vosk.SetLogLevel(-1)
+
+  global vosk_reco_ru
+  global vosk_reco_en
+  global vosk_reco_de
+
+  vosk_model_ru = None
+  vosk_model_en = None
+  vosk_model_de = None
+
+  vosk_model_ru_path = os.path.join(home_dir, 'data', 'vosk-model-small-ru')
+  vosk_model_en_path = os.path.join(home_dir, 'data', 'vosk-model-small-en')
+  vosk_model_de_path = os.path.join(home_dir, 'data', 'vosk-model-small-de')
+
+  if not os.path.exists(vosk_model_ru_path):
+    raise SystemExit(f'\nНе найдена модель Vosk для локального распознавания русского языка ("{vosk_model_ru_path}")!\n\a')
+
+  if not vosk_reco_ru:
+    try:
+      vosk_model_ru = vosk.Model(vosk_model_ru_path)
+      vosk_reco_ru = vosk.KaldiRecognizer(vosk_model_ru, VOSK_FRAME_RATE)
+      vosk_reco_ru.SetWords(True)
+    except Exception as e:
+      print(e)
+      raise SystemExit('Ошибка при инициализации механизма локального распознавания Vosk для русского языка!\n\a')
+  
+  if os.path.exists(vosk_model_en_path): 
+    if not vosk_reco_en:
+      try:
+        vosk_model_en = vosk.Model(vosk_model_en_path)
+        vosk_reco_en = vosk.KaldiRecognizer(vosk_model_en, VOSK_FRAME_RATE)
+        vosk_reco_en.SetWords(True)  
+      except Exception as e:
+        print(e)
+        print('Ошибка при инициализации механизма локального распознавания Vosk для английского языка!\n')
+  
+  if os.path.exists(vosk_model_de_path): 
+    if not vosk_reco_de:
+      try:
+        vosk_model_de = vosk.Model(vosk_model_de_path)
+        vosk_reco_de = vosk.KaldiRecognizer(vosk_model_de, VOSK_FRAME_RATE)
+        vosk_reco_de.SetWords(True)
+      except Exception as e:
+        print(e)
+        print('Ошибка при инициализации механизма локального распознавания Vosk для немецкого языка!\n')
+
+
+def init_translator():
+  """
+  Инициализация переводчика (Google-переводчик)
+  """
+  global translator
+  translator = Translator()
+  return translator
+  
+
+def init_web_browser():
+  """
+  Инициализация web-браузера для поиска в web
+  """
+  global web_browser
+  
+  if not is_webbrowser: 
+    web_browser = None
+    return None
+  
+  if config.web.web_browser_app:
+    web.register('web_browser', None, web.BackgroundBrowser(config.web.web_browser_app))
+    web_browser = web.get('web_browser')
+  else:
+    web_browser = web.get(None)
+  
+  return web_browser
 
 
 def say(text, lang='ru', speed=1.0):
@@ -955,7 +1086,7 @@ def show_caption(caption):
     say(f'{caption}:')
     
 
-def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, ambient_duration=config.mic.ambient_duration):
+def listen_and_recognize(listen_timeout=None, lang='ru', clear_screen=True, ambient_duration=config.mic.ambient_duration, beep_when_ready=False):
     """
     Прослушивании и распознавание речи
     (основная процедура, один шаг цикла)
@@ -972,6 +1103,8 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
       
       if clear_screen: print('Слушаю...')
       
+      if BEEP_WHEN_READY or beep_when_ready: play_sound(frequency=500, duration=400) ##
+      
       try:
         audio = reco.listen(source, timeout = listen_timeout)
       except sr.WaitTimeoutError:
@@ -981,28 +1114,127 @@ def listen_and_recognize(listen_timeout = None, lang='ru', clear_screen=True, am
     if audio:
       #if clear_screen: print('Услышала.')
       
-      # Язык распознавания
-      # По умолчанию
-      reco_language = 'ru-RU'      
+      # Определяем язык распознавания.
+      # По умолчанию:
+      reco_language = 'ru-RU'
       
       reco_language = get_lang_and_country_code_by_tag(lang_tag = lang)
       if not reco_language: reco_language = 'ru-RU'
       
       if clear_screen: print('Распознавание...')
+      is_ok = True
       
-      try:     
-        result = reco.recognize_google(audio, language = reco_language)
-        text = result
-        #print(f'Вы сказали: {text}')
-      except Exception as e:
-        if clear_screen:
-          print(e)
-          print('Ошибка распознавания!')
-        text = ''
+      # Локальное распознавание посредством Vosk Engine
+      # Также Vosk Engine используется при локальном контроле ключевых фраз (!)
+      # В текущей версии - только для русского языка (!)
+      if (SR_LOCAL_VIA_VOSK or SR_LOCAL_FOR_KEYPHRASE) and lang == 'ru':
+        try:
+          text = recognize_vosk(audio, language = reco_language)
+          #print(f'[VOSK] Вы сказали: {text}')
+          #sleep(2)
+        except Exception as e:
+          if clear_screen:
+            print(e)
+            print('Ошибка распознавания (Vosk Engine, local)!')
+          text = ''
+          is_ok = False
+        
+      # Локальный контроль ключевых фраз
+      # Даже если основное распознавание происходит через интернет, 
+      # предварительно будет локально проверяться - адресована ли фраза роботу (!)
+      # В текущей версии - только для русского языка (!)
+      if text and SR_LOCAL_FOR_KEYPHRASE and lang == 'ru':
+        is_ok = is_keyphrase(text, language = lang)
+      
+      if is_ok:
+        # Дальнейшее распознавание
+        
+        # Локальное распознавание посредством Vosk Engine (уже было проделано ранее)
+        if SR_LOCAL_VIA_VOSK:
+          pass
+        
+        # Распознавание речи через интернет, посредством Google (используется по умолчанию)
+        #elif SR_REMOTE_VIA_GOOGLE:
+        else:
+          try:
+            text = reco.recognize_google(audio, language = reco_language)
+            #print(f'[Google] Вы сказали: {text}')
+            #sleep(2)
+          except Exception as e:
+            if clear_screen:
+              print(e)
+              print('Ошибка распознавания (Google, remote)!')
+            text = ''
+            is_ok = False
     
     act_checking_time_to_sleep() ##!!
     return text
     
+
+def is_keyphrase(text, language='ru'):
+  """
+  Контроль - является ли заданный текст ключевой фразой (командой), предназначенной роботу
+  """
+  if not text: return False
+  if not text.lower().startswith(ROBOT_NAME_LOWER): return False
+  return True
+
+
+def recognize_vosk(audio, language='ru-RU'):
+  """
+  Локальное распознавание посредством библиотеки Vosk
+  """
+  result = ''
+  
+  # По умолчанию
+  vosk_reco = vosk_reco_ru
+  
+  if language == 'en-EN':
+    vosk_reco = vosk_reco_en
+  elif language == 'de-DE':
+    vosk_reco = vosk_reco_de
+    
+  if vosk_reco:
+    #audio_data = audio.get_wav_data(convert_rate=VOSK_FRAME_RATE, convert_width=2)
+    audio_data = audio.get_raw_data(convert_rate=VOSK_FRAME_RATE, convert_width=2)
+    
+    # Распознавание порциями
+    CHUNK_SIZE = 16000
+    i = 0
+
+    while True:
+      data = audio_data[i : i + CHUNK_SIZE]
+      if len(data) == 0:
+        break
+
+      if vosk_reco.AcceptWaveform(data):
+        res_json = json.loads(vosk_reco.Result())
+        text = res_json['text']
+        
+        if text != '':
+          result += f"{text} "
+          
+      i += CHUNK_SIZE
+
+    res_json = json.loads(vosk_reco.FinalResult())
+    result += f" {res_json['text']}"
+    
+    # # Распознавание целиком за один проход
+    # if vosk_reco.AcceptWaveform(audio_data):
+      # res_json = json.loads(vosk_reco.Result())
+      # text = res_json['text']
+      # print(f' 1: {text}')
+      # if text != '': 
+        # result = text
+
+      # res_json = json.loads(vosk_reco.FinalResult())
+      # text = res_json['text']
+      # print(f' 2: {text}')
+      # if text != '': 
+        # result += f" {text}"
+
+  return result.strip()
+
 
 def is_stop_word(text):
   """
@@ -1174,8 +1406,8 @@ def make_reaction(text):
   
   if not text: return
   
-  robot_name = config.main.robot_name.lower()
-  robot_name_length = len(robot_name)
+  robot_name = ROBOT_NAME_LOWER
+  robot_name_length = ROBOT_NAME_LENGTH
     
   text = text.lower()
   isCensored = False
@@ -1221,8 +1453,8 @@ def act_i_am_ready(**kwargs):
 
   text = listen_and_recognize()
   if text: 
-    if not text.lower().startswith(config.main.robot_name.lower()):
-      text = f'{config.main.robot_name} {text}'
+    if not text.lower().startswith(ROBOT_NAME_LOWER):
+      text = f'{ROBOT_NAME} {text}'
     make_reaction(text)
 
 
@@ -1631,7 +1863,7 @@ def act_memorize_text(**kwargs):
     #text_new = listen_and_recognize(ambient_duration=7)
     #text_new = listen_and_recognize(listen_timeout=10, clear_screen=False, ambient_duration=10)
     #text_new = listen_and_recognize(listen_timeout=3, clear_screen=False, ambient_duration=3)
-    text_new = listen_and_recognize(clear_screen=False)
+    text_new = listen_and_recognize(clear_screen=False, beep_when_ready=True)
 
     if not text_new or len(text_new) == 0:
       continue
@@ -1785,11 +2017,14 @@ def act_rocket_chat_gui_logon(**kwargs):
     pyautogui.hotkey('ctrl', '1')
     sleep(4)
     
-    pyautogui.click(x=config.autoit.rocket_chat_x_hack, y=config.autoit.rocket_chat_y_hack, button='left') # hack
+    mouse_button = 'left'
+    if USING_LEFT_HANDED_MOUSE: mouse_button = 'right'
     
-    pyautogui.write(config.rocket.rocket_chat_login, interval=config.autoit.gui_write_interval)
+    pyautogui.click(x = config.autoit.rocket_chat_x_hack, y = config.autoit.rocket_chat_y_hack, button = mouse_button) # hack
+    
+    pyautogui.write(config.rocket.rocket_chat_login, interval = config.autoit.gui_write_interval)
     pyautogui.press('tab')
-    pyautogui.write(config.rocket.rocket_chat_pwd, interval=config.autoit.gui_write_interval)
+    pyautogui.write(config.rocket.rocket_chat_pwd, interval = config.autoit.gui_write_interval)
     pyautogui.press('enter')  
     
     wnd.minimize()
@@ -2042,7 +2277,7 @@ def wait_while_music_playing():
       else:
         # Возможность остановки плеера, голосовой командой с именем робота
         text = listen_and_recognize(listen_timeout=2, clear_screen=False).lower()
-        if config.main.robot_name.lower() in text:
+        if ROBOT_NAME_LOWER in text:
           radio.radio_pause()
           #beep()
           say('Окей')
@@ -2288,16 +2523,19 @@ def act_web_search(**kwargs):
     search_string = ''
   
   if web_browser and search_string:
-    web_browser.open(f'{config.web.web_search_engine_default}{search_string}', new=2)
-  
-  say('Сделано.')
+    web_browser.open(f'{config.web.web_search_engine_default}{search_string}', new=2)  
+    say('Сделано.')
+  else:
+    say('Ошибка.')
   
 
 def translate_text(text, to_lang='ru', from_lang='auto'):
   """
   Перевод текста на указанный язык (используется Google-переводчик)
   """
+  if not translator: return ''
   if not text: return ''
+
   result_text = ''
   
   try:
@@ -2317,13 +2555,25 @@ def act_translate_text(**kwargs):
   Перевод текста на указанный язык (используется Google-переводчик)
   
   Общий формат команды (параметра `text`):
-  "(`перевод` | `переведи`) GOALTEXT [`на` TOLANG] [(`с` |'с языка') FROMLANG]"
+  "(`перевод` | `переведи`) GOALTEXT [`на` TOLANG] [(`с` |'с языка') FROMLANG] [`на` TOLANG]"
   
   Если язык требуемого для перевода текста отличается от русского,
   его можно будет произнести отдельно, по запросу системы.
   """
   text = kwargs.get('text', '')
   if not text: return
+  
+  to_lang_name = None
+  
+  # Обеспечим дополнительную гибкость - возможность сказать: "... [(`с` |'с языка') FROMLANG] [`на` TOLANG]"
+  find_from_lang_idx = text.find('с ')
+  find_to_lang_idx = text.find('на ')
+  
+  if find_from_lang_idx != -1 \
+     and find_to_lang_idx != -1 \
+     and (find_to_lang_idx > find_from_lang_idx):
+    # На какой язык (указано в конце команды)
+    (text, to_lang_name) = extract_value_from_text(text, 'на', '')
   
   # С какого языка
   if 'с языка' in text:
@@ -2338,7 +2588,8 @@ def act_translate_text(**kwargs):
     if not from_lang: from_lang = 'auto'
     
   # На какой язык
-  (text, to_lang_name) = extract_value_from_text(text, 'на', '')
+  if not to_lang_name:
+    (text, to_lang_name) = extract_value_from_text(text, 'на', '')
 
   if not to_lang_name:
     if from_lang not in ['auto', 'ru']:
@@ -2350,16 +2601,17 @@ def act_translate_text(**kwargs):
     if not to_lang: to_lang = 'en'
   
   # Текст для перевода
+  # По умолчанию - извлекаем текст из первоначальной фразы
+  try:
+    text = re.split('перевод|переведи', text)[-1].strip()
+  except:
+    text = ''
+
   # Фишка! При необходимости - отдельное распознавание текста с учётом языка, с которого переводим
-  if from_lang not in ['auto', 'ru']:
+  # Кроме того, запросим текст явно, если изначально он не был указан
+  if (not text) or (from_lang not in ['auto', 'ru']):
     say('Говорите.')
-    text = listen_and_recognize(lang=from_lang, clear_screen=False).lower()
-  else:  
-    # По умолчанию - извлекаем текст из первоначальной фразы
-    try:
-      text = re.split('перевод|переведи', text)[-1].strip()
-    except:
-      text = ''
+    text = listen_and_recognize(lang=from_lang, clear_screen=False, beep_when_ready=True).lower()
     
   if text:
     show_caption('Перевод')
@@ -3336,6 +3588,13 @@ def act_light_color_temperature(**kwargs):
 ## -- end ACTIONS (действия) ------------------------------------------------------------------ ##
 
 
+def my_except_hook(extype, value, traceback):
+  """
+  Перехватчик исключений
+  """
+  print(f'{extype} - {value} - {traceback}')
+  
+
 def init_and_parse_args():
   """
   Инициализация и разбор аргументов командной строки
@@ -3363,7 +3622,7 @@ def init(config_file=None):
   Открытие баз данных, настройка двигов произношения и распознавания речи.
   """
   setup(config_file)
-  
+
   # Загрузка карты реакций
   load_reactions_map() ##
   
@@ -3376,7 +3635,16 @@ def init(config_file=None):
   
   init_locale()
   
+  init_speech_recognizer()
+  
+  if SR_LOCAL_VIA_VOSK or SR_LOCAL_FOR_KEYPHRASE:
+    init_vosk_engine()
+  
   init_tts()
+  
+  init_translator()
+  
+  init_web_browser()
   
   open_databases()
   
@@ -3386,10 +3654,10 @@ def init(config_file=None):
   
   load_smart_devices()
   
-  print(ansi.clear_screen())
-  
   # Корректировка громкости звука
   set_system_volume(config.engine.system_volume_default)
+  
+  ##print(ansi.clear_screen())
 
 
 def run(config_file=None):
@@ -3401,10 +3669,13 @@ def run(config_file=None):
   # Инициализация
   init(config_file)
   
+  print(ansi.clear_screen())
+  
   ##beep()
-  say(f'Привет. {config.main.robot_name} на связи.')
+  say(f'Привет. {ROBOT_NAME} на связи.')
   
   #DEBUG
+  #sys.excepthook = my_except_hook
   #print('\nOK')
   #sys.exit(0)
   #end DEBUG

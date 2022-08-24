@@ -7,6 +7,10 @@ import utils
 
 config = utils.load_config()
 
+# Имя робота
+ROBOT_NAME = config.main.robot_name
+ROBOT_NAME_LOWER = ROBOT_NAME.lower()
+
 
 def from_camel_to_snake_case(name):
   """
@@ -59,10 +63,10 @@ def load_reactions_map(type, is_action_valid_proc):
         
         # Требуемые преобразования
         if key_phrase_exact:
-          key_phrase_exact = [k.lower().replace('%robot_name%', config.main.robot_name.lower()) for k in key_phrase_exact]
+          key_phrase_exact = [k.lower().replace('%robot_name%', ROBOT_NAME_LOWER) for k in key_phrase_exact]
           
         if key_phrase_partial:
-          key_phrase_partial = [k.lower().replace('%robot_name%', config.main.robot_name.lower()) for k in key_phrase_partial]
+          key_phrase_partial = [k.lower().replace('%robot_name%', ROBOT_NAME_LOWER) for k in key_phrase_partial]
         
         if result_type in ['action', 'user_action'] and result_action:
           result_action_snake_case = from_camel_to_snake_case(result_action)

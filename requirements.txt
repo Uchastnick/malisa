@@ -21,3 +21,4 @@ yeelight>=0.7.10
 wikipedia>=1.4.0
 psutil>=5.7.2
 PyAudio>=0.2.12
+vosk>=0.3.42

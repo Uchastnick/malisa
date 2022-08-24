@@ -20,6 +20,13 @@ data_files = [
   ('config/README.md', 'config'),
 
   ('data/*.*', 'data'),
+
+  ##('data/vosk-model-small-ru', 'data/vosk-model-small-ru'),
+  # ('data/vosk-model-small-en', 'data/vosk-model-small-en'),
+  # ('data/vosk-model-small-de', 'data/vosk-model-small-de'),
+  
+  ##('.venv/Lib/site-packages/vosk/*.dll', 'vosk'),
+
   ('memo/README.md', 'memo'),
   ('playlist/*.*', 'playlist'),  
   ('rdp/README.md', 'rdp'),  
@@ -29,7 +36,9 @@ data_files = [
   ('sound/*.mp3', 'sound'),
   ('stand_up/whattodo.txt', 'stand_up'),
   ('tmp/README.md', 'tmp'),
+  
   ('tools/README.md', 'tools'),
+  ('tools/setvol', 'tools/setvol'),
 
   ('malisa.bat', '.'),
 

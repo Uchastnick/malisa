@@ -121,6 +121,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [INI]
 //Filename: "{app}\config\config.ini"; Section: "app"; Key: "MPV_APP_PATH"; String: "'{app}\\tools\\mpv\\mpv'"; Components: mpvplayer
+Filename: "{app}\config\config.ini"; Section: "app"; Key: "SET_VOLUME_APP"; String: "'{app}\\tools\\setvol\\setvol.exe'"; Components: main
 
 [Code]
 

@@ -125,7 +125,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [INI]
 //Filename: "{app}\config\config.ini"; Section: "app"; Key: "MPV_APP_PATH"; String: "'{app}\\tools\\mpv\\mpv'"; Components: mpvplayer
-Filename: "{app}\config\config.ini"; Section: "app"; Key: "SET_VOLUME_APP"; String: "'{app}\\tools\\setvol\\setvol.exe'"; Components: main
+//Filename: "{app}\config\config.ini"; Section: "app"; Key: "SET_VOLUME_APP"; String: "'{app}\\tools\\setvol\\setvol.exe'"; Components: main
 
 [Code]
 
@@ -133,6 +133,9 @@ var
   options1PageId, options2PageId: Integer;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  SetVolApp: String;
+
 begin
   if CurStep = ssInstall then 
   begin    
@@ -161,6 +164,10 @@ begin
 
   if CurStep = ssDone then 
   begin
+    SetVolApp := ExpandConstant('{app}\tools\setvol\setvol.exe');
+    StringChangeEx(SetVolApp, '\', '\\', True);
+    SetIniString('app', 'SET_VOLUME_APP', '''' + SetVolApp + '''', ExpandConstant('{tmp}\config.ini.1251'));
+    
     ConfigToUTF8();
   end;
 end;

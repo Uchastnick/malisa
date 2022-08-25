@@ -131,11 +131,7 @@ from utils import (
 import yaml
 from inputimeout import inputimeout, TimeoutOccurred
 
-try:
-  import webbrowser as web
-  is_webbrowser = True
-except Exception as e:
-  is_webbrowser = False
+import webbrowser as web
 
 import re
 
@@ -987,15 +983,16 @@ def init_web_browser():
   """
   global web_browser
   
-  if not is_webbrowser: 
+  try:
+    if config.web.web_browser_app:
+      web.register('web_browser', None, web.BackgroundBrowser(config.web.web_browser_app))
+      web_browser = web.get('web_browser')
+    else:
+      web_browser = web.get(None)
+
+  except Exception as e:
+    print(e)
     web_browser = None
-    return None
-  
-  if config.web.web_browser_app:
-    web.register('web_browser', None, web.BackgroundBrowser(config.web.web_browser_app))
-    web_browser = web.get('web_browser')
-  else:
-    web_browser = web.get(None)
   
   return web_browser
 

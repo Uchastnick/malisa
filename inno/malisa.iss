@@ -9,9 +9,14 @@
 #define MyAppPublisher "dsm"
 #define MyAppExeName "malisa.exe"
 #define DefaultDirName "c:\malisa"
+#define MyAppIcoName "malisa.ico"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "2.3.2-beta"
+  #define MyAppVersion "2.3.3-beta"
+#endif
+
+#ifndef MyAppSize
+  #define MyAppSize 113175277
 #endif
 
 #ifndef PythonVersion
@@ -58,6 +63,7 @@ AllowRootDirectory=True
 DisableDirPage=no
 PrivilegesRequired=none
 AppCopyright=dsm
+SetupIconFile=..\malisa.ico
 ; WizardSizePercent=120
 ; MinVersion=0,6.0
 
@@ -81,13 +87,11 @@ Name: "compact"; Description: "Минимальная установка"
 Name: "custom"; Description: "Выборочная установка"; Flags: iscustom
 
 [Components]
-Name: "main"; Description: "Ядро голосового помощника"; Types: full compact custom; Flags: fixed
-Name: "arinavoice"; Description: "Голос 'Арина' от RHVoice"; Types: full compact custom; Flags: fixed
-//Name: "main"; Description: "Ядро голосового помощника"; Types: full compact custom;
-//Name: "arinavoice"; Description: "Голос 'Арина' от RHVoice"; Types: full compact custom;
-Name: "irinavoice"; Description: "Голос 'Ирина' от RHVoice"; Types: full
-Name: "mpvplayer"; Description: "Локальная установка плеера MPV"; Types: full
-Name: "aimp3player"; Description: "Установка плеера AIMP3"; Types: full
+Name: "main"; Description: "Ядро голосового помощника"; Types: full compact custom; Flags: fixed; ExtraDiskSpaceRequired: {#MyAppSize}
+Name: "arinavoice"; Description: "Голос 'Арина' от RHVoice"; Types: full compact custom; Flags: fixed; ExtraDiskSpaceRequired: 10850360
+Name: "irinavoice"; Description: "Голос 'Ирина' от RHVoice"; Types: full; ExtraDiskSpaceRequired: 15591494
+Name: "mpvplayer"; Description: "Локальная установка плеера MPV"; Types: full; ExtraDiskSpaceRequired: 86142338
+Name: "aimp3player"; Description: "Установка плеера AIMP3"; Types: full; ExtraDiskSpaceRequired: 53484768
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

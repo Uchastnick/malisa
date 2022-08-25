@@ -29,6 +29,7 @@ stand_up/*
 tmp/*
 
 tools/*
+!tools/setvol
 
 !.gitkeep
 !README.md

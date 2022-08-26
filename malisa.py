@@ -1865,7 +1865,10 @@ def act_memorize_text(**kwargs):
     if not text_new or len(text_new) == 0:
       continue
 
-    if 'запись завершена' in text_new.lower():
+    text_new_lower = text_new.lower()
+
+    if 'конец записи' in text_new_lower \
+       or 'запись завершена' in text_new_lower:
       break
     else:
       print(f'{text_new}')
@@ -3618,9 +3621,12 @@ def init(config_file=None):
   Инициализация голосового робота-ассистента.
   Открытие баз данных, настройка двигов произношения и распознавания речи.
   """
-  setup(config_file)
+  print('Инициализация...')
 
+  setup(config_file)
+  
   # Загрузка карты реакций
+  print('Загрузка карты реакций')
   load_reactions_map() ##
   
   # Проверка доступности внешнего приложения для проигрывания файлов
@@ -3632,23 +3638,30 @@ def init(config_file=None):
   
   init_locale()
   
+  print('Активация основного механизма распознавания речи')
   init_speech_recognizer()
   
   if SR_LOCAL_VIA_VOSK or SR_LOCAL_FOR_KEYPHRASE:
+    print('Активация механизма VOSK локального распознавания речи')
     init_vosk_engine()
   
+  print('Активация механизма генерации речи')
   init_tts()
   
+  print('Активация переводчика')
   init_translator()
   
+  print('Установка браузера для веб-поиска')
   init_web_browser()
   
+  print('Открытие и загрузка локальных баз данных')
   open_databases()
   
   load_quotes()
   load_irr_verbs()  
   load_phrasal_verbs()
   
+  print('Загрузка списка умных устройств')
   load_smart_devices()
   
   # Корректировка громкости звука
@@ -3662,7 +3675,7 @@ def run(config_file=None):
   Основная точка входа. 
   Инициализация. 
   Запуск цикла распознавания и обработки.
-  """  
+  """
   # Инициализация
   init(config_file)
   

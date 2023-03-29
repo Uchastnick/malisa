@@ -21,7 +21,7 @@ def get_air_pollution_barnaul_info():
     html_tree = lxml.html.fromstring(content)
 
     result = html_tree.xpath('.//div[@class="pollution"]//div[@class="table table10"]//div[@class="td5"]')[-2].text
-    result = result.replace('г.', ' года')
+    result = result.replace('г.', ' года').replace(' города', '')
   
   except Exception as e:
     print(e)

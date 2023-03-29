@@ -7,7 +7,7 @@ set RELEASE_DIR=_release
 set VERSION=
 for /f "usebackq tokens=*" %%i in (".\VERSION") do set VERSION=%%i
 
-set SIZE=113175277
+set SIZE=132326092
 for /f "usebackq tokens=1,2*" %%i in (`du -b -s "%SCRIPT_DIR%\%RELEASE_DIR%\dist\%BASENAME%"`) do set SIZE=%%i
 
 set PYTHON_VER=cp37

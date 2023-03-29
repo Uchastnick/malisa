@@ -2,6 +2,8 @@
 
 [Code]
 
+//== Процедуры окна №1 ==
+
 procedure Options1PageActivate(Page: TWizardPage);
 begin
 end;
@@ -67,6 +69,8 @@ procedure Options1PageCancel(Page: TWizardPage; var ACancel, AConfirm: Boolean);
 begin
 end;
 
+//== Процедуры окна №2 ==
+
 procedure Options2PageActivate(Page: TWizardPage);
 begin
 end;
@@ -116,6 +120,8 @@ end;
 procedure Options2PageCancel(Page: TWizardPage; var ACancel, AConfirm: Boolean);
 begin
 end;
+
+//== Вспомогательные процедуры и функции  ==
 
 procedure GetLibraryPathOnClick(Sender: TObject);
 var                        
@@ -186,9 +192,119 @@ begin
   end;
 end;
 
+//== Процедуры окна №3 ==
+procedure Options3PageActivate(Page: TWizardPage);
+begin
+end;
+
+function Options3PageNextButtonClick(Page: TWizardPage): Boolean;
+var
+  sIniFile: String;
+  
+  Text: String;
+  Index: Integer;
+  
+  LangIndex: Integer;
+  LangName: String;
+
+  RecoEngineIndex: Integer;
+  
+  RecoLocalKeyValue, ExtTTSGoogleValue: Boolean;
+  IsRecoRemoteViaGoogle, IsRecoLocalViaVosk: Integer;
+  IsRecoLocalKey, IsExtTTSGoogle: Integer;
+
+begin
+  Result := True;
+  sIniFile := ExpandConstant('{tmp}\config.ini.1251');
+
+  if Result then
+  begin
+    Text := Trim(TComboBox(Page.FindComponent('cbLang')).Text);
+    Index := TComboBox(Page.FindComponent('cbLang')).ItemIndex;        
+    if (Text = '') or (Index = -1) then begin ShowError('Не указан язык по умолчанию!'); Result := False; end;
+    if Result then
+    begin
+      LangIndex := Index;
+      if ((LangIndex < 0)) then begin ShowError('Указан недопустимый язык по умолчанию!'); Result := False; end;
+
+      if Result then
+      begin
+        LangName := 'ru';
+        if LangIndex = 1 then begin LangName := 'en'; end;
+        if LangIndex = 2 then begin LangName := 'de'; end;
+      end;
+    end;
+  end;
+
+  if Result then
+  begin
+    Text := Trim(TComboBox(Page.FindComponent('cbRecoEngine')).Text);
+    Index := TComboBox(Page.FindComponent('cbRecoEngine')).ItemIndex;        
+    if (Text = '') or (Index = -1) then begin ShowError('Не выбран базовый механизм распознавания речи!'); Result := False; end;
+    if Result then
+    begin
+      RecoEngineIndex := Index;
+      if ((RecoEngineIndex < 0)) then begin ShowError('Указан недопустимый механизм распознавания речи!'); Result := False; end;
+      
+      if Result then
+      begin
+        IsRecoRemoteViaGoogle := 1;
+        IsRecoLocalViaVosk := 0;
+
+        if RecoEngineIndex = 0 then begin 
+          IsRecoRemoteViaGoogle := 1;
+          IsRecoLocalViaVosk := 0;
+        end;
+
+        if RecoEngineIndex = 1 then begin 
+          IsRecoRemoteViaGoogle := 0;
+          IsRecoLocalViaVosk := 1;
+        end;
+      end;
+    end;
+  end;
+
+  if Result then
+  begin
+    RecoLocalKeyValue := TCheckBox(Page.FindComponent('chbRecoLocalKey')).Checked;        
+    if RecoLocalKeyValue then
+    begin
+      IsRecoLocalKey := 1;
+    end else
+    begin
+      IsRecoLocalKey := 0;
+    end;
+  end;
+
+  if Result then
+  begin
+    ExtTTSGoogleValue := TCheckBox(Page.FindComponent('chbExtTTSGoogle')).Checked;        
+    if ExtTTSGoogleValue then
+    begin
+      IsExtTTSGoogle := 1;
+    end else
+    begin
+      IsExtTTSGoogle := 0;
+    end;
+  end;
+
+  if Result then Result := SetIniString('main', 'DEFAULT_LANGUAGE', '''' + LangName + '''', sIniFile);
+  if Result then Result := SetIniInt('engine', 'SPEECH_RECOGNITION_REMOTE_VIA_GOOGLE', IsRecoRemoteViaGoogle, sIniFile);
+  if Result then Result := SetIniInt('engine', 'SPEECH_RECOGNITION_LOCAL_VIA_VOSK', IsRecoLocalViaVosk, sIniFile);  
+  if Result then Result := SetIniInt('engine', 'SPEECH_RECOGNITION_LOCAL_FOR_KEYPHRASE', IsRecoLocalKey, sIniFile);  
+  if Result then Result := SetIniInt('engine', 'USE_EXTERNAL_TTS_ENGINE_VIA_GOOGLE', IsExtTTSGoogle, sIniFile);  
+
+  //Result := True;
+end;
+
+procedure Options3PageCancel(Page: TWizardPage; var ACancel, AConfirm: Boolean);
+begin
+end;
+
 //=============================================================================
 //== Форма установки параметров ===============================================
 
+//== Страница (окно) опций №1 ==
 function CreateOptions1Page(const AfterID: Integer): Integer;
 var
   Page: TWizardPage;
@@ -370,6 +486,7 @@ begin
   Result := Page.ID;
 end;
 
+//== Страница (окно) опций №2 ==
 function CreateOptions2Page(const AfterID: Integer; const IsMPVInstall: Boolean): Integer;
 var
   Page: TWizardPage;
@@ -537,6 +654,188 @@ begin
     OnActivate := @Options2PageActivate;
     OnNextButtonClick := @Options2PageNextButtonClick;
     OnCancelButtonClick := @Options2PageCancel;
+  end;
+  
+  Result := Page.ID;
+end;
+
+//== Страница (окно) опций №3 ==
+function CreateOptions3Page(const AfterID: Integer): Integer;
+var
+  sIniFile: String;
+  Page: TWizardPage;
+  
+  lblLang: TLabel;
+  cbLang: TComboBox;
+  lblRecoEngine: TLabel;
+  cbRecoEngine: TComboBox;
+  lblRecoLocalKey: TLabel;
+  chbRecoLocalKey: TCheckBox;
+  lblExtTTSGoogle: TLabel;
+  chbExtTTSGoogle: TCheckBox;
+
+  LangName: String;
+  LangIndex, RecoEngineIndex: Integer;
+  
+  IsRecoRemoteViaGoogle, IsRecoLocalViaVosk, IsRecoLocalKey, IsExtTTSGoogle: Integer;
+  RecoLocalKeyValue, ExtTTSGoogleValue: Boolean;
+
+begin
+  sIniFile := ExpandConstant('{tmp}\config.ini.1251');
+
+  Page := CreateCustomPage(
+    AfterID, 
+    ExpandConstant('{cm:OptionsPageName}'), 
+    ExpandConstant('{cm:OptionsPageDescription}'));
+
+  { Язык по умолчанию }
+  lblLang := Tlabel.Create(Page);
+  with lblLang do
+  begin
+    Parent := Page.Surface;
+    Caption := 'Язык робота по умолчанию';
+    Left := ScaleX(8);
+    Top := ScaleY(3);
+    Width := ScaleX(250);
+    Height := ScaleY(13);
+    Font.Style := [fsBold];
+  end;
+
+  cbLang := TComboBox.Create(Page);
+  with cbLang do
+  begin
+    Name := 'cbLang';
+    Parent := Page.Surface;
+    Left := lblLang.Left;
+    Top := lblLang.Top + lblLang.Height + 5;
+    Width := ScaleX(401);
+    Height := ScaleY(21);
+    Color := TColor($FFFFFF);
+    TabOrder := 0;
+    Items.append('Русский (RU)');
+    Items.append('Английский (EN)');
+    Items.append('Немецкий (DE)');
+    Style := csDropDownList;    
+    Enabled := False;
+  end;
+
+  LangIndex := 0;
+  
+  LangName := GetIniString('main', 'DEFAULT_LANGUAGE', 'ru', sIniFile);
+  if LangName = 'en' then begin LangIndex := 1; end;
+  if LangName = 'de' then begin LangIndex := 2; end;
+  
+  cbLang.ItemIndex := LangIndex;
+
+  { Базовый механизм распознавания речи }
+  lblRecoEngine := Tlabel.Create(Page);
+  with lblRecoEngine do
+  begin
+    Parent := Page.Surface;
+    Caption := 'Базовый механизм распознавания речи';
+    Left := lblLang.Left;
+    Top := cbLang.Top + cbLang.Height + 10;
+    Width := ScaleX(250);
+    Height := ScaleY(13);
+    Font.Style := [fsBold];
+  end;
+
+  cbRecoEngine := TComboBox.Create(Page);
+  with cbRecoEngine do
+  begin
+    Name := 'cbRecoEngine';
+    Parent := Page.Surface;
+    Left := lblLang.Left;
+    Top := lblRecoEngine.Top + lblRecoEngine.Height + 5;
+    Width := ScaleX(401);
+    Height := ScaleY(21);
+    Color := TColor($FFFFFF);
+    TabOrder := 1;
+    Items.append('Глобальный, через интернет (Google)');
+    Items.append('Локальный (библиотека Vosk)');
+    Style := csDropDownList;
+    Enabled := False;
+  end;
+
+  RecoEngineIndex := 0;
+  
+  IsRecoRemoteViaGoogle := GetIniInt('engine', 'SPEECH_RECOGNITION_REMOTE_VIA_GOOGLE', 1, 0, 1, sIniFile);
+  IsRecoLocalViaVosk := GetIniInt('engine', 'SPEECH_RECOGNITION_LOCAL_VIA_VOSK', 0, 0, 1, sIniFile);  
+  if (IsRecoRemoteViaGoogle = 0) and (IsRecoLocalViaVosk = 1) then begin RecoEngineIndex := 1; end;
+
+  cbRecoEngine.ItemIndex := RecoEngineIndex;
+
+  { Локальное распознавание ключевых фраз }
+  lblRecoLocalKey := Tlabel.Create(Page);
+  with lblRecoLocalKey do
+  begin
+    Parent := Page.Surface;
+    Caption := 'Локальное распознавание ключевых фраз (библиотека Vosk)';
+    Left := lblLang.Left;
+    Top := cbRecoEngine.Top + cbRecoEngine.Height + 10;
+    Width := ScaleX(250);
+    Height := ScaleY(13);
+    Font.Style := [fsBold];
+  end;
+
+  RecoLocalKeyValue := True;
+  IsRecoLocalKey := GetIniInt('engine', 'SPEECH_RECOGNITION_LOCAL_FOR_KEYPHRASE', 1, 0, 1, sIniFile);  
+  if not (IsRecoLocalKey = 1) then begin RecoLocalKeyValue := False; end;
+
+  chbRecoLocalKey := TCheckBox.Create(Page);
+  with chbRecoLocalKey do
+  begin
+    Name := 'chbRecoLocalKey';
+    Caption := 'Включено';
+    Parent := Page.Surface;
+    Left := lblLang.Left;
+    Top := lblRecoLocalKey.Top + lblRecoLocalKey.Height + 5;
+    Width := ScaleX(401);
+    Height := ScaleY(21);
+    Color := TColor($FFFFFF);
+    TabOrder := 2;
+    Checked := RecoLocalKeyValue;
+    Enabled := False;
+  end;
+
+  { Озвучивать текст через внешний сервис (посредством Google) }
+  lblExtTTSGoogle := Tlabel.Create(Page);
+  with lblExtTTSGoogle do
+  begin
+    Parent := Page.Surface;
+    Caption := 'Озвучивать текст через внешний сервис (Google)';
+    Left := lblLang.Left;
+    Top := chbRecoLocalKey.Top + chbRecoLocalKey.Height + 10;
+    Width := ScaleX(250);
+    Height := ScaleY(13);
+    Font.Style := [fsBold];
+  end;
+
+  ExtTTSGoogleValue := False;
+  IsExtTTSGoogle := GetIniInt('engine', 'USE_EXTERNAL_TTS_ENGINE_VIA_GOOGLE', 0, 0, 1, sIniFile);  
+  if IsExtTTSGoogle = 1 then begin RecoLocalKeyValue := True; end; 
+
+  chbExtTTSGoogle := TCheckBox.Create(Page);
+  with chbExtTTSGoogle do
+  begin
+    Name := 'chbExtTTSGoogle';
+    Caption := 'Включено';
+    Parent := Page.Surface;
+    Left := lblLang.Left;
+    Top := lblExtTTSGoogle.Top + lblExtTTSGoogle.Height + 5;
+    Width := ScaleX(401);
+    Height := ScaleY(21);
+    Color := TColor($FFFFFF);
+    TabOrder := 3;
+    Checked := ExtTTSGoogleValue;
+    Enabled := False;
+  end;
+
+  with Page do
+  begin
+    OnActivate := @Options3PageActivate;
+    OnNextButtonClick := @Options3PageNextButtonClick;
+    OnCancelButtonClick := @Options3PageCancel;
   end;
   
   Result := Page.ID;

@@ -497,6 +497,8 @@ result_action: 'PcShutdownAbort'
 ---
 key_phrase_exact:
 - 'коннект'
+- 'связь'
+- 'connect'
 key_phrase_partial:
 result_type: 'action'
 result_action: 'VpnConnect'
@@ -505,6 +507,8 @@ result_action: 'VpnConnect'
 ---
 key_phrase_exact:
 - 'дисконнект'
+- 'разорвать связь'
+- 'disconnect'
 key_phrase_partial:
 result_type: 'action'
 result_action: 'VpnDisconnect'
@@ -515,9 +519,11 @@ result_action: 'VpnDisconnect'
 key_phrase_exact:
 - 'рдп'
 - 'ртп'
+- 'rdp'
 key_phrase_partial:
 - 'открой рдп'
 - 'открой ртп'
+- 'открой rdp'
 result_type: 'action'
 result_action: 'MstscConnect'
 
@@ -755,7 +761,7 @@ action_need_parameter_text: 1
 # Создать метроном с указанными параметрами
 #
 #  Общий формат команды (параметра `text`):  
-#  text == "`метроном` [BPM `ударов`] [ (COUNT `нот..` LENGTH) | `размер` COUNT `на` LENGTH) ] [`акцент`] [`шаффл`]"
+#  text == "`метроном` [BPM `ударов` | `удара`] [ (COUNT `нот..` LENGTH) | `размер` COUNT `на` LENGTH) ] [`акцент`] [`шаффл`]"
 #  либо
 #  text == "`метроном по умолчанию`"
 #
@@ -784,7 +790,7 @@ key_phrase_exact:
 key_phrase_partial:
 - 'метроном'
 result_type: 'action'
-result_action: 'MakeTimer'
+result_action: 'MakeMetronome'
 action_need_parameter_text: 1
 
 # Включение света (основной лампы)

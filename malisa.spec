@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-
+import os
 
 block_cipher = None
 
@@ -19,13 +19,13 @@ data_files = [
   ('config/words.yaml', 'config'),
   ('config/README.md', 'config'),
 
+  ('ui/*.*', 'ui'),
+
   ('data/*.*', 'data'),
 
-  ##('data/vosk-model-small-ru', 'data/vosk-model-small-ru'),
-  # ('data/vosk-model-small-en', 'data/vosk-model-small-en'),
-  # ('data/vosk-model-small-de', 'data/vosk-model-small-de'),
-  
-  ##('.venv/Lib/site-packages/vosk/*.dll', 'vosk'),
+  ('data/vosk-model-small-ru', 'data/vosk-model-small-ru'),
+  ('data/vosk-model-small-en', 'data/vosk-model-small-en'),
+  ('data/vosk-model-small-de', 'data/vosk-model-small-de'),
 
   ('memo/README.md', 'memo'),
   ('playlist/*.*', 'playlist'),  
@@ -55,6 +55,19 @@ data_files = [
   ('INSTALL.md', 'docs'),
   ('INSTALL.ru.md', 'docs')
 ]
+
+data_files_nt = [
+  ('.venv/Lib/site-packages/vosk/*.dll', 'vosk'),
+]
+
+data_files_posix = [
+  #('.venv/lib/python3.10/site-packages/vosk/*.so', 'vosk'),
+]
+
+if os.name == 'nt':
+  data_files += data_files_nt
+elif os.name == 'posix':
+  data_files += data_files_posix
 
 hidden_modules = [
   'actions', 'malisa'

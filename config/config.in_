@@ -1,8 +1,13 @@
 [main]
 
 ; -----------------------------------------------------------------------------
+; Основные параметры
+
+; Имя робота
 ROBOT_NAME = 'Алиса'
-; -----------------------------------------------------------------------------
+
+; Язык по умолчанию ('' | 'ru' | 'en' | 'de')
+DEFAULT_LANGUAGE = 'ru'
 
 ; Режим приглушённых цветов при выводе сообщений в консоль (1 | 0)
 ; NIGHT_MODE = 1
@@ -11,6 +16,9 @@ ROBOT_NAME = 'Алиса'
 BEEP_WHEN_READY = 0
 
 [mic]
+
+; -----------------------------------------------------------------------------
+; Параметры микрофона
 
 ; индекс основного микрофона в системе
 MICROPHONE_INDEX = 1
@@ -22,16 +30,18 @@ AMBIENT_DURATION = 1
 
 ; -----------------------------------------------------------------------------
 ; Параметры голосовых движков
-; Английский
-SPEECH_ENGINE_EN_NAME = 'Microsoft Anna - English (United States)'
+; По умолчанию используется локальный голосовой движок и набор голосов от RHVoice
 
-; Русский
+; Русский язык
 ; 'Anna', 'Elena', 'Arina' (используем голосовые движки от RHVoice)
 ; 'Russian' - в случае движка espeak-ng
 ; 'russian' - в случае движка espeak
 SPEECH_ENGINE_RU_NAME = 'Arina'
 
-; Немецкий
+; Английский язык
+SPEECH_ENGINE_EN_NAME = 'Microsoft Anna - English (United States)'
+
+; Немецкий язык
 SPEECH_ENGINE_DE_NAME = ''
 
 ; Громкость речи робота
@@ -50,14 +60,19 @@ USE_SPEECH_DISPATCHER_IN_LINUX = 1
 SPEECH_RECOGNITION_REMOTE_VIA_GOOGLE = 1
 
 ; Распознавание речи локально, посредством Vosk
-; (экспериментальная функция, в текущей версии не поддерживается)
+; (экспериментальная функция)
 SPEECH_RECOGNITION_LOCAL_VIA_VOSK = 0
 
 ; Локальное распознавание ключевых фраз.
-; (экспериментальная функция, в текущей версии не поддерживается)
 ; Даже если основное распознавание происходит через интернет, 
 ; предварительно будет локально проверяться - адресована ли фраза роботу
-SPEECH_RECOGNITION_LOCAL_FOR_KEYPHRASE = 0
+SPEECH_RECOGNITION_LOCAL_FOR_KEYPHRASE = 1
+
+; Озвучивать текст другим способом, через внешние сервисы/программы (посредством Google)
+USE_EXTERNAL_TTS_ENGINE_VIA_GOOGLE = 0
+
+; Скорость речи при озвучивании текста внешним сервисом (0.01 - 100)
+EXTERNAL_TTS_SPEED = 1.2
 
 ; -----------------------------------------------------------------------------
 ; Громкость операционной системы по умолчанию
@@ -112,6 +127,8 @@ ROCKET_CHAT_TITLE = 'Global Chat' ; 'Rocket.Chat'
 ROCKET_CHAT_X_HACK = 1000
 ROCKET_CHAT_Y_HACK = 455
 
+DISCORD_APP_TITLE = ''
+
 ; Использование мыши для левши
 USING_LEFT_HANDED_MOUSE = 0
 
@@ -139,12 +156,18 @@ WHATTODO_NAME = 'whattodo'
 ; Отправлять `Привет` в рабочий чат при инициализации рабочего места (True | False)
 ROCKET_CHAT_IS_SEND_HELLO = True ; False
 
+[discord]
+
+; Параметры для работы с Discord
+; Имя основного канала для подключения
+DISCORD_APP_CHANNEL_BASE = ''
+
 [sleep]
 
 ; -----------------------------------------------------------------------------
 ; Время отхода ко сну
 TIME_TO_SLEEP_HOUR = 23
-TIME_TO_SLEEP_MINUTE = 40
+TIME_TO_SLEEP_MINUTE = 45
 
 ; Отключить проверку времени отхода ко сну
 ; only for real bad guys, rebels and hackers
@@ -196,6 +219,8 @@ EXTERNAL_PLAYER_APP = 'mpv'
 
 ; Путь к плееру MPV
 MPV_APP_PATH = 'mpv'
+
+DISCORD_UPDATE_APP = ''
 
 [web]
 
@@ -272,7 +297,7 @@ WIKI_READING_SPEED = 1.2
 BULB_COLOR_TEMP_DEFAULT = 3700
 
 ; Яркость по умолчанию, для устройства освещения по умолчанию
-BULB_BRIGHTNESS_DEFAULT = 95
+BULB_BRIGHTNESS_DEFAULT = 85
 
 [other]
 

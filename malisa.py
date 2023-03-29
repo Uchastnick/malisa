@@ -38,6 +38,10 @@ ROBOT_NAME = config.main.robot_name
 ROBOT_NAME_LOWER = ROBOT_NAME.lower()
 ROBOT_NAME_LENGTH = len(ROBOT_NAME_LOWER)
 
+# Язык по умолчанию
+DEFAULT_LANG = getattr(config.main, 'default_language', 'ru')
+if len(DEFAULT_LANG) != 2: DEFAULT_LANG = 'ru'  
+
 # Звуковой сигнал по готовности
 BEEP_WHEN_READY = getattr(config.main, 'beep_when_ready', 0)
 
@@ -193,7 +197,7 @@ WIKI_SENTENCES_COUNT = getattr(config.wiki, 'wiki_sentences_count', 5)
 # Скорость чтения книг (текста большого объема)
 BOOKS_READING_SPEED = getattr(config.reading, 'books_reading_speed', 1.1)
 
-# Скорость чтения 
+# Скорость чтения вики и результатов поиска
 WIKI_READING_SPEED = getattr(config.wiki, 'wiki_reading_speed', 1.2)
 
 # -----------------------------------------------------------------------------
@@ -218,7 +222,7 @@ dicts_deutsch_all = [
   wdd.words_deutsch_pronouns,
   wdd.words_deutsch_verbs,
   wdd.words_deutsch_words,
-  #wdd.words_deutsch_numerals,
+  wdd.words_deutsch_numerals,
 
   #wdd.words_deutsch_beginners,
   #wdd.words_deutsch_phrases,
@@ -287,6 +291,14 @@ current_tts_lang = ''
 
 # Распознавание речи через интернет, посредством Google (используется по умолчанию)
 SR_REMOTE_VIA_GOOGLE = (getattr(config.engine, 'speech_recognition_remote_via_google', 1) == 1)
+
+# -----------------------------------------------------------------------------
+
+# Возможность озвучивать весь текст другим способом, через внешние сервисы/программы (посредством Google)
+USE_EXTERNAL_TTS_VIA_GOOGLE = (getattr(config.engine, 'use_external_tts_engine_via_google', 0) == 1)
+
+# Скорость речи при озвучивании текста внешним сервисом
+EXTERNAL_TTS_SPEED = getattr(config.engine, 'external_tts_speed', 1.2)
 
 # -----------------------------------------------------------------------------
 
@@ -1001,7 +1013,14 @@ def say(text, lang='ru', speed=1.0):
   """
   Произнести фразу.
   По умолчанию - на русском языке. При необходимости - возможно сменить язык.
-  """  
+ 
+  Добавлена возможность принудительного озвучивания текста внешним голосовым движком,
+  в зависимости от настроек в файле конфигурации.
+  """
+  if USE_EXTERNAL_TTS_VIA_GOOGLE:
+    say_by_external_engine(text=text, lang=lang, quiet=True, hide_external=True, speed=EXTERNAL_TTS_SPEED)
+    return
+    
   if tts:
     # Установка языка голосового движка
     set_voice_language(lang=lang)
@@ -1131,8 +1150,9 @@ def listen_and_recognize(listen_timeout=None, lang='ru', clear_screen=True, ambi
           #sleep(2)
         except Exception as e:
           if clear_screen:
-            print(e)
-            print('Ошибка распознавания (Vosk Engine, local)!')
+            if DEBUG:
+              print(e)
+              print('Ошибка распознавания [Vosk Engine, Local]')
           text = ''
           is_ok = False
         
@@ -1154,13 +1174,17 @@ def listen_and_recognize(listen_timeout=None, lang='ru', clear_screen=True, ambi
         #elif SR_REMOTE_VIA_GOOGLE:
         else:
           try:
-            text = reco.recognize_google(audio, language = reco_language)
+            ##todo
+            ##text = reco.recognize_google(audio, language = reco_language)
+            text = reco.recognize_google(audio, language = reco_language, pfilter = 1)
+
             #print(f'[Google] Вы сказали: {text}')
             #sleep(2)
           except Exception as e:
             if clear_screen:
-              print(e)
-              print('Ошибка распознавания (Google, remote)!')
+              if DEBUG:
+                print(e)
+                print('Ошибка распознавания [Google, Remote]')
             text = ''
             is_ok = False
     
@@ -1923,6 +1947,38 @@ def act_pc_shutdown_abort(**kwargs):
   say('Работайте.')
 
 
+def wait_window_gui(title):
+  """
+  Ожидание появления графического интерфейса окна, по заданному заголовку окна
+  """
+  # Максимальное количество попыток поиска окна в системе
+  WND_MAX_TRY_COUNT = 30
+  
+  if not title:
+    return None
+    
+  wnd = None
+  try_count = 0
+  
+  # Ожидаем появление окна
+  while True:
+    sleep(2)
+
+    try:
+      wnds = pyautogui.getWindowsWithTitle(title)
+      if wnds:
+        wnd = wnds[0]
+        break
+    except Exception as e:
+      print(e)
+    
+    try_count += 1
+    if try_count >= WND_MAX_TRY_COUNT:
+      break
+
+  return wnd
+  
+
 def act_vpn_connect(**kwargs):
   """
   Открыть соединение VPN
@@ -1968,6 +2024,66 @@ def act_mstsc_connect(**kwargs):
   say('Готово')
 
 
+def act_discord_open(**kwargs):
+  """
+  Открыть приложение Discord
+  """
+  if config.app.discord_update_app:
+    show_caption('Открываю Дискорд')
+    
+    cmd = [config.app.discord_update_app,
+           '--processStart', 'Discord.exe']
+    run_os_command(cmd)
+    
+    sleep(45)
+    say('Сделано')
+    
+  else:
+    say('Приложение Дискорд не найдено')
+
+
+def act_discord_server_logon(**kwargs):
+  """
+  Вход на заданный сервер Discord
+  """
+  if config.app.discord_update_app \
+     and config.autoit.discord_app_title \
+     and config.discord.discord_app_channel_base:
+    
+    show_caption('Вход на сервер Дискорд')
+
+    wnd = wait_window_gui(config.autoit.discord_app_title)
+    
+    if wnd:
+      wnd.maximize()
+      sleep(2)
+      
+      wnd.activate()
+      sleep(2)
+      
+      pyautogui.hotkey('ctrl', 'k')
+      sleep(4)
+
+      # Проблема с вводом текста, написанного кириллицей. Решаем через буфер обмена.
+      # pyautogui.write(config.discord.discord_app_channel_base, interval = config.autoit.gui_write_interval)
+
+      copyclip(config.discord.discord_app_channel_base)
+      sleep(1)
+      pyautogui.hotkey('ctrl', 'v')      
+      sleep(2)
+      copyclip('')
+
+      pyautogui.press('enter')
+      
+      sleep(5)
+      say('Сделано')
+      
+    else:
+      say('Приложение Дискорд не найдено')
+  else:
+    say('Отсутствуют параметры приложения Дискорд')
+
+
 def act_rocket_chat_gui_connect(**kwargs):
   """
   Открыть окно Rocket.Chat
@@ -1985,56 +2101,47 @@ def act_rocket_chat_gui_logon(**kwargs):
   """
   Начальная авторизация в окне Rocket.Chat
   """
-  show_caption('Рокет Чат Вход')
-  
-  wnd = None
-  try_count = 0
-  
-  # Ожидаем появление окна
-  while True:
-    sleep(2)
-
-    try:
-      wnds = pyautogui.getWindowsWithTitle(config.autoit.rocket_chat_title)
-      if wnds:
-        wnd = wnds[0]
-        break
-    except Exception as e:
-      print(e)
+  if config.autoit.rocket_chat_title \
+     and config.rocket.rocket_chat_login:
+     
+    show_caption('Рокет Чат Вход')
     
-    try_count += 1
-    if try_count >= 30:
-      break
-  
-  # Окно найдено
-  if wnd:
-    wnd.maximize()
-    sleep(4)
+    wnd = wait_window_gui(config.autoit.rocket_chat_title)
     
-    wnd.activate()
-    sleep(4)
-    
-    pyautogui.hotkey('ctrl', '1')
-    sleep(4)
-    
-    mouse_button = 'left'
-    if USING_LEFT_HANDED_MOUSE: mouse_button = 'right'
-    
-    pyautogui.click(x = config.autoit.rocket_chat_x_hack, y = config.autoit.rocket_chat_y_hack, button = mouse_button) # hack
-    
-    pyautogui.write(config.rocket.rocket_chat_login, interval = config.autoit.gui_write_interval)
-    pyautogui.press('tab')
-    pyautogui.write(config.rocket.rocket_chat_pwd, interval = config.autoit.gui_write_interval)
-    pyautogui.press('enter')  
-    
-    wnd.minimize()
-    
-    sleep(10)
-    say('Готово')  
-  else:
-    say('Рокет Чат не найден.')
+    # Окно найдено
+    if wnd:
+      wnd.maximize()
+      sleep(5)
       
+      wnd.activate()
+      sleep(4)
+      
+      pyautogui.hotkey('ctrl', '1')
+      sleep(5)
 
+      pyautogui.hotkey('ctrl', 'r')
+      sleep(5)
+      
+      mouse_button = 'left'
+      if USING_LEFT_HANDED_MOUSE: mouse_button = 'right'
+      
+      pyautogui.click(x = config.autoit.rocket_chat_x_hack, y = config.autoit.rocket_chat_y_hack, button = mouse_button) # hack
+      
+      pyautogui.write(config.rocket.rocket_chat_login, interval = config.autoit.gui_write_interval)
+      pyautogui.press('tab')
+      pyautogui.write(config.rocket.rocket_chat_pwd, interval = config.autoit.gui_write_interval)
+      pyautogui.press('enter')  
+      
+      wnd.minimize()
+      
+      sleep(10)
+      say('Готово')  
+    else:
+      say('Рокет Чат не найден.')
+  else:
+    say('Отсутствуют параметры приложения Рокет Чат')
+
+    
 def act_rocket_chat_send_hello(**kwargs):
   """
   Отправить "Привет" в рабочий (Rocket) чат
@@ -2229,7 +2336,18 @@ def act_open_workplace(**kwargs):
     act_rocket_chat_send_hello()
     sleep(3)
     print('Rocket Chat Send "Hello!"')
-  
+    
+  if config.app.discord_update_app:
+    # Открытие Discord
+    act_discord_open()
+    sleep(5)
+    print('Discord open')
+
+    # Соединение с требуемым сервером Discord
+    act_discord_server_logon()
+    sleep(5)
+    print('Discord server logon')
+    
   # Корректировка громкости звука
   set_system_volume(config.engine.system_volume_default)
 
@@ -2251,7 +2369,7 @@ def act_checking_time_to_sleep(**kwargs):
   
   if now > time_to_sleep:
     beep(count=2)
-    say('Пора спать, уважаемый. Время уже позднее.')
+    say('Пора спать. Время уже позднее.')
     time.sleep(3)
 
 
@@ -3179,7 +3297,7 @@ def act_make_metronome(**kwargs):
   Создать метроном с указанными параметрами
   
   Общий формат команды (параметра `text`):  
-  text == "`метроном` [BPM `ударов`] [ (COUNT `нот..` LENGTH) | `размер` COUNT `на` LENGTH) ] [`акцент`] [`шаффл`]"
+  text == "`метроном` [BPM `ударов` | `удара`] [ (COUNT `нот..` LENGTH) | `размер` COUNT `на` LENGTH) ] [`акцент`] [`шаффл`]"
   либо
   text == "`метроном по умолчанию`"
   
@@ -3642,7 +3760,7 @@ def init(config_file=None):
   init_speech_recognizer()
   
   if SR_LOCAL_VIA_VOSK or SR_LOCAL_FOR_KEYPHRASE:
-    print('Активация механизма VOSK локального распознавания речи')
+    print('Активация механизма локального распознавания речи')
     init_vosk_engine()
   
   print('Активация механизма генерации речи')

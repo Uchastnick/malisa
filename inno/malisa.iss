@@ -12,11 +12,11 @@
 #define MyAppIcoName "malisa.ico"
 
 #ifndef MyAppVersion
-  #define MyAppVersion "2.3.3-beta"
+  #define MyAppVersion "2.4.0-beta"
 #endif
 
 #ifndef MyAppSize
-  #define MyAppSize 113175277
+  #define MyAppSize 132326092
 #endif
 
 #ifndef PythonVersion
@@ -131,6 +131,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 var
   options1PageId, options2PageId: Integer;
+  options3PageId: Integer;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
@@ -158,6 +159,7 @@ begin
 
     options1PageId := CreateOptions1Page(wpInfoAfter);
     options2PageId := CreateOptions2Page(options1PageId, WizardIsComponentSelected('mpvplayer'));
+    options3PageId := CreateOptions3Page(options2PageId);
 
     //EnvAddPath(ExpandConstant('{app}'));
   end;
@@ -176,7 +178,7 @@ procedure CurPageChanged(CurPageID: Integer);
 begin
   //if CurPageID = wpLicense then AutoAcceptLicense();
 
-  //if (CurPageID = options1PageId) or (CurPageID = options2PageId) then
+  //if (CurPageID = options1PageId) or (CurPageID = options2PageId) or (CurPageID = options3PageId) then
   //begin
   //end;
 
